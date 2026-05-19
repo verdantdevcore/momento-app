@@ -29,6 +29,11 @@ export default function UploadPage() {
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
   const [fileWarning, setFileWarning] = useState('')
 
+
+  const [showLimitModal, setShowLimitModal] = useState(false)
+  const [selectedCount, setSelectedCount] = useState(0)
+
+
   useEffect(() => {
     async function fetchEvent() {
       const { data } = await supabase
@@ -55,7 +60,7 @@ export default function UploadPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [slug, router, supabase, uploading])
 
-    function handleFileChange(incoming: FileList | null) {
+  function handleFileChange(incoming: FileList | null) {
       if (!incoming) return
       setFileWarning('')
 
@@ -65,7 +70,8 @@ export default function UploadPage() {
       let accepted = Array.from(incoming)
 
       if (accepted.length > MAX_FILES) {
-        setFileWarning(`You selected ${accepted.length} files — the maximum is ${MAX_FILES} at a time. Please go back to your gallery and select ${MAX_FILES} or fewer.`)
+        setSelectedCount(accepted.length)
+        setShowLimitModal(true)
         setFiles(null)
         return
       }
@@ -259,6 +265,19 @@ export default function UploadPage() {
             <p style={{ color: 'var(--text-dim)', fontSize: '0.825rem' }}>Separate tags with spaces</p>
           </div>
 
+          {/* Prominent upload limits banner */}
+          <div style={{ backgroundColor: 'rgba(85,107,47,0.15)', border: '1px solid rgba(85,107,47,0.4)', borderRadius: '0.75rem', padding: '0.75rem 1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '1.125rem', flexShrink: 0 }}>📎</span>
+            <div>
+              <p style={{ color: 'var(--text-primary)', fontSize: '0.825rem', fontWeight: 700, margin: 0 }}>
+                Upload limits
+              </p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', margin: '0.25rem 0 0', lineHeight: 1.5 }}>
+                Max <strong style={{ color: 'var(--text-primary)' }}>10 files</strong> per upload · Max <strong style={{ color: 'var(--text-primary)' }}>50MB</strong> per file. Select more? Split into multiple uploads.
+              </p>
+            </div>
+          </div>
+
           {/* File picker */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>
@@ -328,12 +347,42 @@ export default function UploadPage() {
             {uploading ? `Uploading ${progress?.current} of ${progress?.total}...` : 'Upload'}
           </button>
 
-          <p style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.775rem', lineHeight: 1.5 }}>
-           Upload up to <strong style={{ color: 'var(--text-muted)' }}>10 files</strong> per upload, Max <strong style={{ color: 'var(--text-muted)' }}>50MB</strong> per file.{' '}
-            For more, split into multiple uploads.
-          </p>
         </div>
       </div>
+      {/* Limit exceeded modal */}
+      {showLimitModal && (
+        <div
+          onClick={() => setShowLimitModal(false)}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1.25rem', padding: '1.75rem', width: '100%', maxWidth: '22rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center' }}
+          >
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'rgba(245,158,11,0.15)', border: '2px solid #f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
+              ⚠️
+            </div>
+            <div>
+              <h3 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '1.125rem' }}>
+                Too many files
+              </h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem', lineHeight: 1.6 }}>
+                You selected <strong style={{ color: 'var(--text-primary)' }}>{selectedCount} files</strong> but the maximum is <strong style={{ color: 'var(--text-primary)' }}>10 per upload</strong>.
+              </p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem', lineHeight: 1.6 }}>
+                Go back to your gallery, select <strong style={{ color: 'var(--text-primary)' }}>10 or fewer</strong>, then upload. You can always upload the rest in a second round.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowLimitModal(false)}
+              style={{ width: '100%', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: '1rem', minHeight: '52px' }}
+            >
+              Got it, I&apos;ll reselect
+            </button>
+          </div>
+        </div>
+      )}
+
     </main>
   )
 }
