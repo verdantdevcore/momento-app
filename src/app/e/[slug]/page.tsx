@@ -389,7 +389,7 @@ export default function EventFeedPage() {
       {/* Upload FAB */}
       <Link
         href={`/e/${slug}/upload`}
-        style={{ position: 'fixed', bottom: '1.5rem', left: '1.5rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '2rem', padding: '1.25rem 1.5rem', fontWeight: 700, fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem', textDecoration: 'none', zIndex: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}
+        style={{ position: 'fixed', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', zIndex: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.4)', fontSize: '1.75rem', fontWeight: 300, lineHeight: 1 }}
       >
         +
       </Link>
