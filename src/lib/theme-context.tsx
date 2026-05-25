@@ -28,7 +28,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
+      <div style={{
+        maxWidth: '430px',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        minHeight: '100vh',
+        position: 'relative',
+        boxShadow: '0 0 80px rgba(0,0,0,0.6)',
+        backgroundColor: 'var(--bg-base)',
+        overflowX: 'hidden',
+      }}>
+        {children}
+      </div>
     </ThemeContext.Provider>
   )
 }
