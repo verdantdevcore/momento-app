@@ -53,6 +53,8 @@ export default function EventFeedPage() {
   const feedRef = useRef<HTMLDivElement | null>(null)
   const touchStartY = useRef(0)
   const touchStartX = useRef(0)
+  const isDragging = useRef(false)
+  const dragStartX = useRef(0)
 
   const appUrl = (
     process.env.NEXT_PUBLIC_APP_URL ??
@@ -307,9 +309,24 @@ export default function EventFeedPage() {
             >
               {/* Media area — fills available space above the description */}
               <div
-                style={{ flex: 1, position: 'relative', overflow: 'hidden' }}
+                style={{ flex: 1, position: 'relative', overflow: 'hidden', cursor: card.isBatch ? 'grab' : 'default', userSelect: 'none' as const }}
                 onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
                 onTouchEnd={e => card.isBatch && handleCarouselSwipe(card.id, card.items.length, e)}
+                onMouseDown={e => { isDragging.current = true; dragStartX.current = e.clientX }}
+                onMouseMove={e => { if (!isDragging.current) return; e.preventDefault() }}
+                onMouseUp={e => {
+                  if (!isDragging.current) return
+                  isDragging.current = false
+                  if (!card.isBatch) return
+                  const diff = dragStartX.current - e.clientX
+                  if (Math.abs(diff) < 40) return
+                  setCarouselIndexes(prev => {
+                    const current = prev[card.id] ?? 0
+                    if (diff > 0) return { ...prev, [card.id]: Math.min(current + 1, card.items.length - 1) }
+                    return { ...prev, [card.id]: Math.max(current - 1, 0) }
+                  })
+                }}
+                onMouseLeave={() => { isDragging.current = false }}
               >
                 {activeItem.type === 'image' ? (
                   <Image
