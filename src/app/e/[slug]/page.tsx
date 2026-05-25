@@ -329,31 +329,18 @@ export default function EventFeedPage() {
                 onMouseLeave={() => { isDragging.current = false }}
               >
                 {activeItem.type === 'image' ? (
-                  <Image
-                    src={activeItem.url}
-                    alt=""
-                    fill
-                    sizes="100vw"
-                    style={{ objectFit: 'contain' }}
-                  />
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <Image src={activeItem.url} alt="" fill sizes="100vw" style={{ objectFit: 'contain' }} />
+                  </div>
                 ) : (
-                  <video
-                    src={activeItem.url}
-                    controls
-                    playsInline
-                    crossOrigin="anonymous"
-                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-                  />
+                  <video src={activeItem.url} controls playsInline crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                 )}
 
                 {/* Carousel dots */}
                 {card.isBatch && (
-                  <div style={{ position: 'absolute', top: '0.75rem', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '0.375rem' }}>
+                  <div style={{ position: 'absolute', top: '0.75rem', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '0.375rem', pointerEvents: 'none' }}>
                     {card.items.map((_, i) => (
-                      <div
-                        key={i}
-                        style={{ width: i === activeIndex ? '16px' : '6px', height: '6px', borderRadius: '999px', backgroundColor: i === activeIndex ? '#ffffff' : 'rgba(255,255,255,0.4)', transition: 'all 0.2s ease' }}
-                      />
+                      <div key={i} style={{ width: i === activeIndex ? '16px' : '6px', height: '6px', borderRadius: '999px', backgroundColor: i === activeIndex ? '#ffffff' : 'rgba(255,255,255,0.4)', transition: 'all 0.2s ease' }} />
                     ))}
                   </div>
                 )}
@@ -363,6 +350,32 @@ export default function EventFeedPage() {
                   <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '999px', padding: '0.25rem 0.625rem', color: '#ffffff', fontSize: '0.775rem', fontWeight: 600 }}>
                     {activeIndex + 1}/{card.items.length}
                   </div>
+                )}
+
+                {/* Left arrow */}
+                {card.isBatch && activeIndex > 0 && (
+                  <button
+                    onClick={e => {
+                      e.stopPropagation()
+                      setCarouselIndexes(prev => ({ ...prev, [card.id]: (prev[card.id] ?? 0) - 1 }))
+                    }}
+                    style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontSize: '1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 5 }}
+                  >
+                    ‹
+                  </button>
+                )}
+
+                {/* Right arrow */}
+                {card.isBatch && activeIndex < card.items.length - 1 && (
+                  <button
+                    onClick={e => {
+                      e.stopPropagation()
+                      setCarouselIndexes(prev => ({ ...prev, [card.id]: (prev[card.id] ?? 0) + 1 }))
+                    }}
+                    style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontSize: '1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 5 }}
+                  >
+                    ›
+                  </button>
                 )}
               </div>
 
