@@ -204,14 +204,15 @@ export default function DashboardPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
         {/* Stats bar — full width but content centered */}
-      <div style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)', padding: '1rem 1.5rem' }}>
-        <div style={{ maxWidth: '680px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+      {/* Stats bar — full width background, content centered */}
+      <div style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)', padding: '1.25rem 1rem' }}>
+        <div style={{ maxWidth: '680px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', textAlign: 'center' }}>
           {[
             { label: 'EVENTS', value: events.length, icon: '🎉' },
             { label: 'UPLOADS', value: totalUploads, icon: '📸' },
             { label: 'VIEWS', value: totalViews.toLocaleString(), icon: '👁' },
           ].map(stat => (
-            <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.125rem', textAlign: 'center' }}>
+            <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.125rem' }}>
               <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
                 {stat.icon} {stat.label}
               </p>
@@ -223,9 +224,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Boxed content area — header and footer stay full width */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1.25rem 1rem' }}>
-        <div style={{ width: '100%', maxWidth: '680px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {/* Boxed content area — visually distinct on desktop */}
+      <div style={{ flex: 1, padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ width: '100%', maxWidth: '680px', display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: 'var(--bg-base)', borderRadius: '1rem', padding: '0.5rem', boxSizing: 'border-box' }}>
 
           {/* Category management */}
           {usedCategories.length > 1 && (
@@ -351,7 +352,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
-
       <Footer />
     </main>
   )

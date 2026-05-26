@@ -234,47 +234,46 @@ export default function EventFeedPage() {
 
       <header
         ref={headerRef}
-        style={{ backgroundColor: 'var(--bg-surface)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', padding: '0.75rem 1rem', display: 'flex', alignItems: 'flex-start', gap: '0.625rem', position: 'sticky', top: 0, zIndex: 10 }}
+        style={{ backgroundColor: 'var(--bg-surface)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', padding: '0.75rem 1rem', position: 'sticky', top: 0, zIndex: 10 }}
       >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '1rem' }}>
-              {event.title}
-            </p>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {media.length} {media.length === 1 ? 'photo' : 'photos'}
-            </span>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+              <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, fontSize: '1rem' }}>
+                {event.title}
+              </p>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                {media.length} {media.length === 1 ? 'photo' : 'photos'}
+              </span>
+            </div>
+
+            {/* Location, date, time row */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.625rem', marginTop: '0.25rem' }}>
+              {event.description && (
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem' }}>
+                  {event.description}
+                </span>
+              )}
+              {event.event_date && (
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap' }}>
+                  📅 {new Date(event.event_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
+                  {event.event_time && ` · ${event.event_time}`}
+                </span>
+              )}
+              {event.location && (
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap' }}>
+                  📍 {event.location}
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Event meta row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-            {event.description && (
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {event.description}
-              </span>
-            )}
-            {(event.event_date || event.location) && event.description && (
-              <span style={{ color: 'var(--border)', fontSize: '0.75rem' }}>|</span>
-            )}
-            {event.event_date && (
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap' }}>
-                📅 {new Date(event.event_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
-                {event.event_time && ` · ${event.event_time}`}
-              </span>
-            )}
-            {event.location && (
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap' }}>
-                📍 {event.location}
-              </span>
-            )}
-          </div>
+          {refreshing && (
+            <div style={{ width: '20px', height: '20px', border: '2px solid var(--border)', borderTopColor: 'var(--text-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0, marginTop: '0.25rem' }} />
+          )}
+          <ThemeToggle />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
-
-        {refreshing && (
-          <div style={{ width: '20px', height: '20px', border: '2px solid var(--border)', borderTopColor: 'var(--text-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0, marginTop: '0.25rem' }} />
-        )}
-        <ThemeToggle />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </header>
 
       {/* Hashtag category filter bar */}
