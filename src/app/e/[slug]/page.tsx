@@ -180,7 +180,7 @@ export default function EventFeedPage() {
     setRefreshing(true)
     const { data: eventData } = await supabase
       .from('events')
-      .select('id, title, slug, description')
+      .select('id, title, slug, description, location, event_date, event_time')
       .eq('slug', slug)
       .single()
     if (eventData) {
