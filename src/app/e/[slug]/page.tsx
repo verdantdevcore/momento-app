@@ -46,6 +46,7 @@ export default function EventFeedPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [feedHeight, setFeedHeight] = useState('100dvh')
   const [carouselIndexes, setCarouselIndexes] = useState<Record<string, number>>({})
+  const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({})
 
   const observerRefs = useRef<Map<string, IntersectionObserver>>(new Map())
   const headerRef = useRef<HTMLElement | null>(null)
@@ -134,6 +135,21 @@ export default function EventFeedPage() {
     observerRefs.current.set(mediaId, observer)
   }
 
+  function handleCarouselSwipe(cardId: string, totalItems: number, e: React.TouchEvent) {
+    const diffX = touchStartX.current - e.changedTouches[0].clientX
+    if (Math.abs(diffX) < 40) return
+    setCarouselIndexes(prev => {
+      const current = prev[cardId] ?? 0
+      const next = diffX > 0
+        ? Math.min(current + 1, totalItems - 1)
+        : Math.max(current - 1, 0)
+      if (next !== current) {
+        setImageLoading(l => ({ ...l, [cardId]: true }))
+      }
+      return { ...prev, [cardId]: next }
+    })
+  }
+
   async function handleShare(card: FeedCard) {
     const first = card.items[0]
     const shareUrl = `${appUrl}/e/${slug}?post=${first.id}`
@@ -185,16 +201,6 @@ export default function EventFeedPage() {
     const diffY = e.changedTouches[0].clientY - touchStartY.current
     const atTop = feedRef.current?.scrollTop === 0
     if (diffY > 80 && atTop) handlePullRefresh()
-  }
-
-  function handleCarouselSwipe(cardId: string, totalItems: number, e: React.TouchEvent) {
-    const diffX = touchStartX.current - e.changedTouches[0].clientX
-    if (Math.abs(diffX) < 40) return
-    setCarouselIndexes(prev => {
-      const current = prev[cardId] ?? 0
-      if (diffX > 0) return { ...prev, [cardId]: Math.min(current + 1, totalItems - 1) }
-      return { ...prev, [cardId]: Math.max(current - 1, 0) }
-    })
   }
 
   const allTags = Array.from(
@@ -330,10 +336,30 @@ export default function EventFeedPage() {
               >
                 {activeItem.type === 'image' ? (
                   <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                    <Image src={activeItem.url} alt="" fill sizes="100vw" style={{ objectFit: 'contain' }} />
+                    {imageLoading[card.id] && (
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-base)', zIndex: 2 }}>
+                        <div style={{ width: '36px', height: '36px', border: '3px solid rgba(255,255,255,0.15)', borderTopColor: '#ffffff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                      </div>
+                    )}
+                    <Image
+                      src={activeItem.url}
+                      alt=""
+                      fill
+                      sizes="100vw"
+                      style={{ objectFit: 'contain', opacity: imageLoading[card.id] ? 0 : 1, transition: 'opacity 0.2s ease' }}
+                      onLoad={() => setImageLoading(l => ({ ...l, [card.id]: false }))}
+                      onError={() => setImageLoading(l => ({ ...l, [card.id]: false }))}
+                    />
                   </div>
                 ) : (
-                  <video src={activeItem.url} controls playsInline crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                  <video
+                    src={activeItem.url}
+                    controls
+                    playsInline
+                    crossOrigin="anonymous"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                  />
                 )}
 
                 {/* Carousel dots */}
@@ -357,6 +383,7 @@ export default function EventFeedPage() {
                   <button
                     onClick={e => {
                       e.stopPropagation()
+                      setImageLoading(l => ({ ...l, [card.id]: true }))
                       setCarouselIndexes(prev => ({ ...prev, [card.id]: (prev[card.id] ?? 0) - 1 }))
                     }}
                     style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontSize: '1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 5 }}
@@ -370,6 +397,33 @@ export default function EventFeedPage() {
                   <button
                     onClick={e => {
                       e.stopPropagation()
+                      setImageLoading(l => ({ ...l, [card.id]: true }))
+                      setCarouselIndexes(prev => ({ ...prev, [card.id]: (prev[card.id] ?? 0) + 1 }))
+                    }}
+                    style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontSize: '1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 5 }}
+                  >
+                    ›
+                  </button>
+                )}{/* Left arrow */}
+                {card.isBatch && activeIndex > 0 && (
+                  <button
+                    onClick={e => {
+                      e.stopPropagation()
+                      setImageLoading(l => ({ ...l, [card.id]: true }))
+                      setCarouselIndexes(prev => ({ ...prev, [card.id]: (prev[card.id] ?? 0) - 1 }))
+                    }}
+                    style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontSize: '1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 5 }}
+                  >
+                    ‹
+                  </button>
+                )}
+
+                {/* Right arrow */}
+                {card.isBatch && activeIndex < card.items.length - 1 && (
+                  <button
+                    onClick={e => {
+                      e.stopPropagation()
+                      setImageLoading(l => ({ ...l, [card.id]: true }))
                       setCarouselIndexes(prev => ({ ...prev, [card.id]: (prev[card.id] ?? 0) + 1 }))
                     }}
                     style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontSize: '1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 5 }}
