@@ -52,6 +52,7 @@ export default function DashboardPage() {
   const [activeCategory, setActiveCategory] = useState<string>('All')
   const [totalUploads, setTotalUploads] = useState(0)
   const [totalViews, setTotalViews] = useState(0)
+  const [showCategoryPanel, setShowCategoryPanel] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -220,21 +221,86 @@ export default function DashboardPage() {
 
         <div style={{ flex: 1, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-          {/* Category filter tabs */}
+          {/* Category management */}
           {usedCategories.length > 1 && (
-            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '0.25rem' }}>
-              {usedCategories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  style={{ height: '34px', paddingLeft: '0.875rem', paddingRight: '0.875rem', borderRadius: '999px', border: '1px solid var(--border)', backgroundColor: activeCategory === cat ? 'var(--accent)' : 'var(--bg-input)', color: activeCategory === cat ? '#F7E7CE' : 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
-                >
-                  {cat === 'All' ? 'All events' : `${categoryEmojis[cat] ?? ''} ${cat}`}
-                  <span style={{ marginLeft: '0.375rem', opacity: 0.7, fontSize: '0.75rem' }}>
-                    {cat === 'All' ? events.length : events.filter(e => e.category === cat).length}
+            <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', border: '1px solid var(--border)', overflow: 'hidden' }}>
+
+              {/* Header */}
+              <div
+                style={{ padding: '0.875rem 1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+                onClick={() => setShowCategoryPanel(v => !v)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                  <span style={{ fontSize: '1rem' }}>🗂</span>
+                  <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.925rem', margin: 0 }}>
+                    Categories
+                  </p>
+                  <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: 'var(--accent)', fontSize: '0.7rem', fontWeight: 700, padding: '0.1rem 0.5rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.3)' }}>
+                    {usedCategories.length - 1}
                   </span>
-                </button>
-              ))}
+                </div>
+                <span style={{ color: 'var(--text-dim)', fontSize: '0.875rem', transition: 'transform 0.2s', display: 'inline-block', transform: showCategoryPanel ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                  ▾
+                </span>
+              </div>
+
+              {/* Filter tabs — always visible */}
+              <div style={{ padding: '0 1.125rem 0.875rem', display: 'flex', gap: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                {usedCategories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    style={{ height: '32px', paddingLeft: '0.75rem', paddingRight: '0.75rem', borderRadius: '999px', border: '1px solid var(--border)', backgroundColor: activeCategory === cat ? 'var(--accent)' : 'var(--bg-input)', color: activeCategory === cat ? '#F7E7CE' : 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                  >
+                    {cat === 'All' ? 'All' : `${categoryEmojis[cat] ?? ''} ${cat}`}
+                    <span style={{ marginLeft: '0.25rem', opacity: 0.7, fontSize: '0.725rem' }}>
+                      {cat === 'All' ? events.length : events.filter(e => e.category === cat).length}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Expanded category breakdown */}
+              {showCategoryPanel && (
+                <div style={{ borderTop: '1px solid var(--border)', padding: '0.875rem 1.125rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                  {usedCategories.filter(c => c !== 'All').map(cat => {
+                    const count = events.filter(e => e.category === cat).length
+                    const pct = Math.round((count / events.length) * 100)
+                    return (
+                      <div
+                        key={cat}
+                        onClick={() => setActiveCategory(cat)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.625rem 0.75rem', borderRadius: '0.625rem', border: '1px solid var(--border)', backgroundColor: activeCategory === cat ? 'rgba(85,107,47,0.1)' : 'var(--bg-input)', cursor: 'pointer' }}
+                      >
+                        <span style={{ fontSize: '1.125rem', flexShrink: 0 }}>{categoryEmojis[cat] ?? '📌'}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                            <p style={{ color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 600, margin: 0 }}>{cat}</p>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', margin: 0, flexShrink: 0 }}>
+                              {count} event{count !== 1 ? 's' : ''} · {pct}%
+                            </p>
+                          </div>
+                          <div style={{ height: '4px', backgroundColor: 'var(--border)', borderRadius: '999px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', backgroundColor: activeCategory === cat ? 'var(--accent)' : 'var(--accent-faint)', borderRadius: '999px', width: `${pct}%`, opacity: activeCategory === cat ? 1 : 0.5, transition: 'width 0.3s ease' }} />
+                          </div>
+                        </div>
+                        {activeCategory === cat && (
+                          <span style={{ color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                        )}
+                      </div>
+                    )
+                  })}
+
+                  {activeCategory !== 'All' && (
+                    <button
+                      onClick={() => setActiveCategory('All')}
+                      style={{ marginTop: '0.25rem', padding: '0.5rem', border: 'none', background: 'none', color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}
+                    >
+                      Clear filter — show all events
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
