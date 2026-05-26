@@ -203,48 +203,47 @@ export default function DashboardPage() {
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-        {/* Stats row */}
-        <div style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)', padding: '1rem 1.25rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', maxWidth: '100%' }}>
-            {[
-              { label: 'Events', value: events.length, icon: '🎉' },
-              { label: 'Uploads', value: totalUploads, icon: '📸' },
-              { label: 'Views', value: totalViews.toLocaleString(), icon: '👁' },
-            ].map(stat => (
-              <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
-                <p style={{ color: 'var(--text-dim)', fontSize: '0.725rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{stat.icon} {stat.label}</p>
-                <p style={{ color: 'var(--text-primary)', fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>{stat.value}</p>
-              </div>
-            ))}
-          </div>
+        {/* Stats bar — full width but content centered */}
+      <div style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)', padding: '1rem 1.5rem' }}>
+        <div style={{ maxWidth: '680px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+          {[
+            { label: 'EVENTS', value: events.length, icon: '🎉' },
+            { label: 'UPLOADS', value: totalUploads, icon: '📸' },
+            { label: 'VIEWS', value: totalViews.toLocaleString(), icon: '👁' },
+          ].map(stat => (
+            <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.125rem', textAlign: 'center' }}>
+              <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+                {stat.icon} {stat.label}
+              </p>
+              <p style={{ color: 'var(--text-primary)', fontSize: '1.75rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                {stat.value}
+              </p>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <div style={{ flex: 1, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {/* Boxed content area — header and footer stay full width */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1.25rem 1rem' }}>
+        <div style={{ width: '100%', maxWidth: '680px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
           {/* Category management */}
           {usedCategories.length > 1 && (
             <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', border: '1px solid var(--border)', overflow: 'hidden' }}>
-
-              {/* Header */}
               <div
                 style={{ padding: '0.875rem 1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
                 onClick={() => setShowCategoryPanel(v => !v)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
                   <span style={{ fontSize: '1rem' }}>🗂</span>
-                  <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.925rem', margin: 0 }}>
-                    Categories
-                  </p>
+                  <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.925rem', margin: 0 }}>Categories</p>
                   <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: 'var(--accent)', fontSize: '0.7rem', fontWeight: 700, padding: '0.1rem 0.5rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.3)' }}>
                     {usedCategories.length - 1}
                   </span>
                 </div>
-                <span style={{ color: 'var(--text-dim)', fontSize: '0.875rem', transition: 'transform 0.2s', display: 'inline-block', transform: showCategoryPanel ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                  ▾
-                </span>
+                <span style={{ color: 'var(--text-dim)', fontSize: '0.875rem', display: 'inline-block', transform: showCategoryPanel ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▾</span>
               </div>
 
-              {/* Filter tabs — always visible */}
               <div style={{ padding: '0 1.125rem 0.875rem', display: 'flex', gap: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 {usedCategories.map(cat => (
                   <button
@@ -260,42 +259,29 @@ export default function DashboardPage() {
                 ))}
               </div>
 
-              {/* Expanded category breakdown */}
               {showCategoryPanel && (
                 <div style={{ borderTop: '1px solid var(--border)', padding: '0.875rem 1.125rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
                   {usedCategories.filter(c => c !== 'All').map(cat => {
                     const count = events.filter(e => e.category === cat).length
                     const pct = Math.round((count / events.length) * 100)
                     return (
-                      <div
-                        key={cat}
-                        onClick={() => setActiveCategory(cat)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.625rem 0.75rem', borderRadius: '0.625rem', border: '1px solid var(--border)', backgroundColor: activeCategory === cat ? 'rgba(85,107,47,0.1)' : 'var(--bg-input)', cursor: 'pointer' }}
-                      >
+                      <div key={cat} onClick={() => setActiveCategory(cat)} style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.625rem 0.75rem', borderRadius: '0.625rem', border: '1px solid var(--border)', backgroundColor: activeCategory === cat ? 'rgba(85,107,47,0.1)' : 'var(--bg-input)', cursor: 'pointer' }}>
                         <span style={{ fontSize: '1.125rem', flexShrink: 0 }}>{categoryEmojis[cat] ?? '📌'}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                             <p style={{ color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 600, margin: 0 }}>{cat}</p>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', margin: 0, flexShrink: 0 }}>
-                              {count} event{count !== 1 ? 's' : ''} · {pct}%
-                            </p>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', margin: 0, flexShrink: 0 }}>{count} event{count !== 1 ? 's' : ''} · {pct}%</p>
                           </div>
                           <div style={{ height: '4px', backgroundColor: 'var(--border)', borderRadius: '999px', overflow: 'hidden' }}>
                             <div style={{ height: '100%', backgroundColor: activeCategory === cat ? 'var(--accent)' : 'var(--accent-faint)', borderRadius: '999px', width: `${pct}%`, opacity: activeCategory === cat ? 1 : 0.5, transition: 'width 0.3s ease' }} />
                           </div>
                         </div>
-                        {activeCategory === cat && (
-                          <span style={{ color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>✓</span>
-                        )}
+                        {activeCategory === cat && <span style={{ color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>✓</span>}
                       </div>
                     )
                   })}
-
                   {activeCategory !== 'All' && (
-                    <button
-                      onClick={() => setActiveCategory('All')}
-                      style={{ marginTop: '0.25rem', padding: '0.5rem', border: 'none', background: 'none', color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}
-                    >
+                    <button onClick={() => setActiveCategory('All')} style={{ marginTop: '0.25rem', padding: '0.5rem', border: 'none', background: 'none', color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
                       Clear filter — show all events
                     </button>
                   )}
@@ -304,10 +290,8 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Main content grid — side panel on desktop when form open */}
+          {/* Events list + create form grid */}
           <div style={{ display: 'grid', gridTemplateColumns: showForm ? '1fr 1fr' : '1fr', gap: '1.25rem', alignItems: 'start' }}>
-
-            {/* Events column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>
@@ -358,7 +342,6 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Create form panel — sticky on desktop */}
             {showForm && (
               <div style={{ position: 'sticky', top: '80px' }}>
                 {createForm}
@@ -367,6 +350,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+    </div>
 
       <Footer />
     </main>

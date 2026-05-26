@@ -1,12 +1,17 @@
+import { randomBytes } from 'crypto'
+
 export function generateSlug(title: string): string {
-  return title
+  const base = title
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .slice(0, 60)
-    + '-' + Math.random().toString(36).slice(2, 7)
+    .slice(0, 50)
+
+  // F-08 fix: cryptographically random suffix — 2^64 combinations
+  const suffix = randomBytes(8).toString('hex')
+  return `${base}-${suffix}`
 }
 
 export function formatTimeAgo(date: string): string {

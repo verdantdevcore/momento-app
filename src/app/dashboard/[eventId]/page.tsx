@@ -121,7 +121,7 @@ export default function EventDashboardPage() {
   }
 
   function downloadQR() {
-    const canvas = document.getElementById('qr-canvas') as HTMLCanvasElement
+    const canvas = qrCanvasRef.current
     if (!canvas) return
     const url = canvas.toDataURL('image/png')
     const a = document.createElement('a')
@@ -252,8 +252,10 @@ export default function EventDashboardPage() {
               <div style={{ backgroundColor: '#F7E7CE', borderRadius: '0.75rem', padding: '1.25rem' }}>
                 {/* Visible QR */}
                 <QRCodeSVG value={eventUrl} size={200} />
-                {/* Hidden canvas for download */}
-                <QRCodeCanvas id="qr-canvas" value={eventUrl} size={400} style={{ display: 'none' }} />
+                {/* Hidden canvas for QR download — using ref not getElementById */}
+                <div style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none' }}>
+                  <QRCodeCanvas ref={qrCanvasRef} value={eventUrl} size={400} />
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '0.625rem', width: '100%' }}>
                 <button
