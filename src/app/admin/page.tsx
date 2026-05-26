@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { LoadingBar } from '@/components/ui/LoadingBar'
 import { formatTimeAgo } from '@/lib/utils'
+import { GreenLogo } from '@/components/landing/Logo'
 
 type Metrics = {
   total_hosts: number
@@ -133,7 +134,7 @@ export default function AdminPage() {
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
       <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0 1.5rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.125rem', letterSpacing: '-0.02em' }}>Momento</span>
+          <GreenLogo />
           <span style={{ color: 'var(--border)' }}>|</span>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>Super Admin</span>
         </div>

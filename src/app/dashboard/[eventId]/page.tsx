@@ -11,6 +11,7 @@ import JSZip from 'jszip'
 import { createClient } from '@/lib/supabase/client'
 import { formatTimeAgo } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { GreenLogo } from '@/components/landing/Logo'
 
 const EVENT_CATEGORIES = [
   'Wedding', 'Birthday', 'Anniversary', 'Engagement',
@@ -208,6 +209,7 @@ export default function EventDashboardPage() {
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%' }}>
       <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.625rem', position: 'sticky', top: 0, zIndex: 10 }}>
         <Link href="/dashboard" style={pillButton}>‹ Back</Link>
+        <GreenLogo />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '1rem' }}>{event.title}</p>

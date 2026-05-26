@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
+import { GreenLogo } from '@/components/landing/Logo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -36,7 +37,7 @@ export default function LoginPage() {
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
 
       <nav style={{ padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)' }}>
-        <Link href="/" style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.125rem', letterSpacing: '-0.02em', textDecoration: 'none' }}>Momento</Link>
+        <GreenLogo />
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No account?</span>
           <Link href="/auth/register" style={{ height: '36px', paddingLeft: '1rem', paddingRight: '1rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.625rem', fontSize: '0.875rem', fontWeight: 700, display: 'flex', alignItems: 'center' }}>

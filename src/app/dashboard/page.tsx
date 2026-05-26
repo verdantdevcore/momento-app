@@ -10,6 +10,7 @@ import { generateSlug } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { LoadingBar } from '@/components/ui/LoadingBar'
+import { GreenLogo } from '@/components/landing/Logo'
 
 type Event = {
   id: string
@@ -184,7 +185,7 @@ export default function DashboardPage() {
 
       <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.125rem', letterSpacing: '-0.02em' }}>Momento</span>
+          <GreenLogo />
           <span style={{ color: 'var(--border)' }}>|</span>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>My Events</span>
         </div>

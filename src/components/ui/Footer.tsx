@@ -1,5 +1,7 @@
 'use client'
 
+import { FooterLogo } from '@/components/landing/Logo'
+
 type FooterProps = {
   variant?: 'default' | 'minimal'
 }
@@ -51,6 +53,7 @@ export function Footer({ variant = 'default' }: FooterProps) {
 
         {/* Brand line */}
         <div>
+          <FooterLogo />
           <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 0.25rem' }}>
             BY
           </p>
@@ -70,9 +73,9 @@ export function Footer({ variant = 'default' }: FooterProps) {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
             {[
-              { href: 'https://linkedin.com/company/verdantdevcore', icon: <LinkedInIcon />, label: 'LinkedIn' },
-              { href: 'https://instagram.com/verdantdevcore', icon: <InstagramIcon />, label: 'Instagram' },
-              { href: 'https://x.com/verdantdevcore', icon: <XIcon />, label: 'X' },
+              { href: 'https://linkedin.com/company/use-momento', icon: <LinkedInIcon />, label: 'LinkedIn' },
+              { href: 'https://instagram.com/sharemomentoapp', icon: <InstagramIcon />, label: 'Instagram' },
+              { href: '#', icon: <XIcon />, label: 'X' },
             ].map(({ href, icon, label }) => (
               <a
                 key={label}
