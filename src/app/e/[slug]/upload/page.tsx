@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
 type Event = {
   id: string
@@ -28,6 +29,7 @@ export default function UploadPage() {
   const [error, setError] = useState('')
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
   const [fileWarning, setFileWarning] = useState('')
+  const { isDesktop } = useWindowWidth()
 
 
   const [showLimitModal, setShowLimitModal] = useState(false)
@@ -191,12 +193,9 @@ export default function UploadPage() {
   )
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%' }}>
+    <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
       <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.625rem', position: 'sticky', top: 0, zIndex: 10 }}>
-        <Link
-          href={`/e/${slug}`}
-          style={{ height: '44px', paddingLeft: '1rem', paddingRight: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', whiteSpace: 'nowrap', flexShrink: 0, textDecoration: 'none' }}
-        >
+        <Link href={`/e/${slug}`} style={{ height: '44px', paddingLeft: '1rem', paddingRight: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', whiteSpace: 'nowrap', flexShrink: 0, textDecoration: 'none' }}>
           ‹ Feed
         </Link>
         <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '1rem', flex: 1 }}>
@@ -205,8 +204,8 @@ export default function UploadPage() {
         <ThemeToggle />
       </header>
 
-      <div style={{ maxWidth: '32rem', margin: '0 auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', padding: '1.25rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: isDesktop ? 'flex-start' : 'stretch', justifyContent: 'center', padding: isDesktop ? '2rem' : '1rem' }}>
+        <div style={{ width: '100%', maxWidth: isDesktop ? '36rem' : '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <h2 style={{ color: 'var(--text-primary)', margin: 0 }}>Share your shots</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>

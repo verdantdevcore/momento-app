@@ -13,7 +13,6 @@
   --accent:        #556B2F;
   --accent-hover:  #636B2F;
   --accent-faint:  #808000;
-  --shell-max:     680px;
 }
 
 [data-theme="light"] {
@@ -44,7 +43,7 @@ html { font-size: 16px; }
 body {
   font-family: var(--font-urbanist), sans-serif;
   font-size: 1rem;
-  background-color: #020101;
+  background-color: var(--bg-base);
   color: var(--text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -66,33 +65,17 @@ a { color: inherit; text-decoration: none; }
 /* ── Global animations ── */
 @keyframes spin       { to { transform: rotate(360deg); } }
 @keyframes fadeIn     { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slideDown  { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes loadingBar { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 
-/* ── App shell — responsive ── */
-.app-shell {
-  min-height: 100vh;
-  background-color: var(--bg-base);
-  overflow-x: hidden;
-  animation: fadeIn 0.2s ease;
+/* ── Date/time picker icons ── */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.6);
+  cursor: pointer;
+  padding: 0.125rem;
+  border-radius: 0.25rem;
 }
-
-@media (min-width: 520px) {
-  body { background-color: #020101; }
-
-  .app-shell {
-    max-width: var(--shell-max);
-    margin-left: auto;
-    margin-right: auto;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 0 80px rgba(0,0,0,0.7);
-    border-left: 1px solid rgba(255,255,255,0.04);
-    border-right: 1px solid rgba(255,255,255,0.04);
-  }
-}
-
-/* Admin is always full-width */
-.app-shell--wide {
-  max-width: 100% !important;
-  box-shadow: none !important;
-  border: none !important;
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  filter: invert(0.9);
 }

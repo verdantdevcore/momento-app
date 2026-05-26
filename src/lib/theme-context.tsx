@@ -1,7 +1,6 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
 
 type Theme = 'dark' | 'light'
 
@@ -12,8 +11,6 @@ const ThemeContext = createContext<{
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('dark')
-  const pathname = usePathname()
-  const isAdmin = pathname?.startsWith('/admin')
 
   useEffect(() => {
     const stored = localStorage.getItem('momento-theme') as Theme | null
@@ -31,9 +28,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <div className={`app-shell${isAdmin ? ' app-shell--wide' : ''}`}>
-        {children}
-      </div>
+      {children}
     </ThemeContext.Provider>
   )
 }
