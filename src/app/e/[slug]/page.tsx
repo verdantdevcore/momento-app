@@ -9,6 +9,8 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { formatTimeAgo } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { Footer } from '@/components/ui/Footer'
+import { LoadingBar } from '@/components/ui/LoadingBar'
 
 type Event = {
   id: string

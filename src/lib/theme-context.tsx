@@ -13,7 +13,7 @@ const ThemeContext = createContext<{
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('dark')
   const pathname = usePathname()
-  const isWide = pathname?.startsWith('/admin')
+  const isAdmin = pathname?.startsWith('/admin')
 
   useEffect(() => {
     const stored = localStorage.getItem('momento-theme') as Theme | null
@@ -31,24 +31,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {isWide ? (
-        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%' }}>
-          {children}
-        </div>
-      ) : (
-        <div style={{
-          maxWidth: '430px',
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          minHeight: '100vh',
-          position: 'relative',
-          boxShadow: '0 0 80px rgba(0,0,0,0.6)',
-          backgroundColor: 'var(--bg-base)',
-          overflowX: 'hidden',
-        }}>
-          {children}
-        </div>
-      )}
+      <div className={`app-shell${isAdmin ? ' app-shell--wide' : ''}`}>
+        {children}
+      </div>
     </ThemeContext.Provider>
   )
 }

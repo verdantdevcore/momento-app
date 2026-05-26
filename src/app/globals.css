@@ -1,33 +1,34 @@
 @import "tailwindcss";
 
 :root {
-  --bg-base:     #0A142F;
-  --bg-surface:  #161C2D;
-  --bg-input:    #0A142F;
-  --border:      #333333;
-  --border-hover:#C0BFBF;
-  --text-primary:#F7E7CE;
-  --text-muted:  #69727D;
-  --text-dim:    #616D83;
-  --text-silver: #C0BFBF;
-  --accent:      #556B2F;
-  --accent-hover:#636B2F;
-  --accent-faint:#808000;
+  --bg-base:       #0A142F;
+  --bg-surface:    #161C2D;
+  --bg-input:      #0A142F;
+  --border:        #333333;
+  --border-hover:  #C0BFBF;
+  --text-primary:  #F7E7CE;
+  --text-muted:    #69727D;
+  --text-dim:      #616D83;
+  --text-silver:   #C0BFBF;
+  --accent:        #556B2F;
+  --accent-hover:  #636B2F;
+  --accent-faint:  #808000;
+  --shell-max:     680px;
 }
 
 [data-theme="light"] {
-  --bg-base:     #F7E7CE;
-  --bg-surface:  #E0E0E0;
-  --bg-input:    #ffffff;
-  --border:      #C0BFBF;
-  --border-hover:#444444;
-  --text-primary:#0A142F;
-  --text-muted:  #444444;
-  --text-dim:    #616D83;
-  --text-silver: #333333;
-  --accent:      #556B2F;
-  --accent-hover:#636B2F;
-  --accent-faint:#556B2F;
+  --bg-base:       #F7E7CE;
+  --bg-surface:    #E0E0E0;
+  --bg-input:      #ffffff;
+  --border:        #C0BFBF;
+  --border-hover:  #444444;
+  --text-primary:  #0A142F;
+  --text-muted:    #444444;
+  --text-dim:      #616D83;
+  --text-silver:   #333333;
+  --accent:        #556B2F;
+  --accent-hover:  #636B2F;
+  --accent-faint:  #556B2F;
 }
 
 *,
@@ -38,9 +39,7 @@
   padding: 0;
 }
 
-html {
-  font-size: 16px;
-}
+html { font-size: 16px; }
 
 body {
   font-family: var(--font-urbanist), sans-serif;
@@ -58,32 +57,42 @@ h3 { font-size: 1.25rem;  font-weight: 600; line-height: 1.4; }
 h4 { font-size: 1.125rem; font-weight: 500; }
 h5 { font-size: 1rem;     font-weight: 500; }
 
-small,
-.text-sm { font-size: 0.875rem; }
-.text-xs { font-size: 0.825rem; }
+small, .text-sm { font-size: 0.875rem; }
+.text-xs         { font-size: 0.825rem; }
 
-input,
-textarea,
-button {
-  font-family: inherit;
-  font-size: 1rem;
-}
-
+input, textarea, button { font-family: inherit; font-size: 1rem; }
 a { color: inherit; text-decoration: none; }
 
-/* Desktop — simulate mobile shell */
-@media (min-width: 480px) {
-  body {
-    background-color: #020101;
-  }
+/* ── Global animations ── */
+@keyframes spin       { to { transform: rotate(360deg); } }
+@keyframes fadeIn     { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideDown  { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes loadingBar { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 
-  body > div,
-  body > main {
-    max-width: 430px;
+/* ── App shell — responsive ── */
+.app-shell {
+  min-height: 100vh;
+  background-color: var(--bg-base);
+  overflow-x: hidden;
+  animation: fadeIn 0.2s ease;
+}
+
+@media (min-width: 520px) {
+  body { background-color: #020101; }
+
+  .app-shell {
+    max-width: var(--shell-max);
     margin-left: auto;
     margin-right: auto;
-    min-height: 100vh;
-    position: relative;
-    box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 0 80px rgba(0,0,0,0.7);
+    border-left: 1px solid rgba(255,255,255,0.04);
+    border-right: 1px solid rgba(255,255,255,0.04);
   }
+}
+
+/* Admin is always full-width */
+.app-shell--wide {
+  max-width: 100% !important;
+  box-shadow: none !important;
+  border: none !important;
 }
