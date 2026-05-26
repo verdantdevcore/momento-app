@@ -62,6 +62,9 @@ export default function EventDashboardPage() {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const qrCanvasRef = useRef<HTMLCanvasElement>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 12
 
   const [event, setEvent] = useState<Event | null>(null)
   const [media, setMedia] = useState<Media[]>([])
@@ -333,31 +336,115 @@ export default function EventDashboardPage() {
 
         {/* Media list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>Uploads</h4>
-          {media.length === 0 && <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', padding: '2.5rem 0' }}>No uploads yet.</p>}
-
-          {media.map(item => (
-            <div key={item.id} style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', border: '1px solid var(--border)', overflow: 'hidden', opacity: deletingMediaId === item.id ? 0.4 : 1 }}>
-              {item.type === 'image' ? (
-                <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9' }}>
-                  <Image src={item.url} alt="" fill sizes="(max-width: 512px) 100vw, 512px" style={{ objectFit: 'cover' }} />
-                </div>
-              ) : (
-                <video src={item.url} controls playsInline crossOrigin="anonymous" style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }} />
-              )}
-              <div style={{ padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>{item.uploaded_by ?? 'Anonymous'} · {formatTimeAgo(item.created_at)}</p>
-                  {item.hashtags.length > 0 && <p style={{ color: 'var(--accent-faint)', fontSize: '0.825rem', marginTop: '0.125rem' }}>{item.hashtags.map(t => `#${t}`).join(' ')}</p>}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                  <span style={{ color: 'var(--text-dim)', fontSize: '0.825rem' }}>{item.views} views</span>
-                  <a href={item.url} download style={{ color: 'var(--text-silver)', fontSize: '0.875rem', fontWeight: 600, textDecoration: 'none', padding: '0.5rem', minHeight: '44px', display: 'flex', alignItems: 'center' }}>↓</a>
-                  <button onClick={() => handleDeleteMedia(item)} disabled={deletingMediaId === item.id} style={{ color: '#ef4444', fontSize: '0.875rem', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', minHeight: '44px', display: 'flex', alignItems: 'center' }}>🗑</button>
-                </div>
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>
+              Uploads
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 400, marginLeft: '0.5rem' }}>
+                ({media.length})
+              </span>
+            </h4>
+            <div style={{ display: 'flex', gap: '0.375rem' }}>
+              <button
+                onClick={() => setViewMode('list')}
+                style={{ width: '36px', height: '36px', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: viewMode === 'list' ? 'var(--accent)' : 'var(--bg-input)', color: viewMode === 'list' ? '#F7E7CE' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}
+              >
+                ☰
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                style={{ width: '36px', height: '36px', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: viewMode === 'grid' ? 'var(--accent)' : 'var(--bg-input)', color: viewMode === 'grid' ? '#F7E7CE' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}
+              >
+                ⊞
+              </button>
             </div>
-          ))}
+          </div>
+
+          {media.length === 0 && (
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', padding: '2.5rem 0' }}>
+              No uploads yet. Share the link with your guests.
+            </p>
+          )}
+
+          {/* Grid view */}
+          {viewMode === 'grid' && media.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              {media.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(item => (
+                <div key={item.id} style={{ position: 'relative', aspectRatio: '1', borderRadius: '0.75rem', overflow: 'hidden', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', opacity: deletingMediaId === item.id ? 0.4 : 1 }}>
+                  {item.type === 'image' ? (
+                    <Image src={item.url} alt="" fill sizes="50vw" style={{ objectFit: 'cover' }} />
+                  ) : (
+                    <video src={item.url} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  )}
+                  {item.type === 'video' && (
+                    <div style={{ position: 'absolute', top: '0.375rem', left: '0.375rem', backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '999px', padding: '0.125rem 0.375rem', fontSize: '0.675rem', color: '#fff', fontWeight: 600 }}>▶ video</div>
+                  )}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.5rem', background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <p style={{ color: '#fff', fontSize: '0.7rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.uploaded_by ?? 'Anon'}
+                    </p>
+                    <button onClick={() => handleDeleteMedia(item)} disabled={deletingMediaId === item.id} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', flexShrink: 0 }}>🗑</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* List view */}
+          {viewMode === 'list' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {media.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(item => (
+                <div key={item.id} style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', border: '1px solid var(--border)', overflow: 'hidden', opacity: deletingMediaId === item.id ? 0.4 : 1 }}>
+                  {item.type === 'image' ? (
+                    <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9' }}>
+                      <Image src={item.url} alt="" fill sizes="(max-width: 512px) 100vw, 512px" style={{ objectFit: 'cover' }} />
+                    </div>
+                  ) : (
+                    <video src={item.url} controls playsInline crossOrigin="anonymous" style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }} />
+                  )}
+                  <div style={{ padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>
+                        {item.uploaded_by ?? 'Anonymous'} · {formatTimeAgo(item.created_at)}
+                      </p>
+                      {item.hashtags.length > 0 && (
+                        <p style={{ color: 'var(--accent-faint)', fontSize: '0.825rem', marginTop: '0.125rem' }}>
+                          {item.hashtags.map(t => `#${t}`).join(' ')}
+                        </p>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                      <span style={{ color: 'var(--text-dim)', fontSize: '0.825rem' }}>{item.views} views</span>
+                      <a href={item.url} download style={{ color: 'var(--text-silver)', fontSize: '0.875rem', fontWeight: 600, textDecoration: 'none', padding: '0.5rem', minHeight: '44px', display: 'flex', alignItems: 'center' }}>↓</a>
+                      <button onClick={() => handleDeleteMedia(item)} disabled={deletingMediaId === item.id} style={{ color: '#ef4444', fontSize: '0.875rem', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', minHeight: '44px', display: 'flex', alignItems: 'center' }}>🗑</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {media.length > PAGE_SIZE && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', paddingTop: '0.5rem' }}>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                style={{ height: '36px', paddingLeft: '0.875rem', paddingRight: '0.875rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}
+              >
+                ← Prev
+              </button>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, padding: '0 0.5rem' }}>
+                {page} / {Math.ceil(media.length / PAGE_SIZE)}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(Math.ceil(media.length / PAGE_SIZE), p + 1))}
+                disabled={page >= Math.ceil(media.length / PAGE_SIZE)}
+                style={{ height: '36px', paddingLeft: '0.875rem', paddingRight: '0.875rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, cursor: page >= Math.ceil(media.length / PAGE_SIZE) ? 'not-allowed' : 'pointer', opacity: page >= Math.ceil(media.length / PAGE_SIZE) ? 0.4 : 1 }}
+              >
+                Next →
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </main>
