@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import Link from "next/link";
 
 export function FinalCTASection() {
   return (
@@ -17,18 +18,25 @@ export function FinalCTASection() {
             </motion.p>
             <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}
               style={{ fontSize: "1.05rem", color: "rgba(247,231,206,0.82)", maxWidth: "480px", margin: "0 auto 2.5rem", lineHeight: 1.7 }}>
-              From weddings to birthdays to corporate events, Momento App brings every guest's photos and videos into one private shared album everyone can enjoy.
+              From weddings to birthdays to corporate events, Momento App brings every guest&apos;s photos and videos into one private shared album everyone can enjoy.
             </motion.p>
-            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-              <button className="px-9 py-4 rounded-full border-none cursor-pointer transition-all hover:opacity-90 hover:scale-105"
-                style={{ fontWeight: 700, fontSize: "1rem", background: "#F7E7CE", color: "#556B2F", boxShadow: "0 4px 24px rgba(0,0,0,0.15)" }}>
-                Get Started Free
-              </button>
-              <button className="px-9 py-4 rounded-full cursor-pointer transition-all hover:opacity-80"
-                style={{ fontWeight: 600, fontSize: "1rem", background: "transparent", color: "#F7E7CE", border: "2px solid rgba(247,231,206,0.5)" }}>
-                View Demo
-              </button>
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }}>
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+                <Link
+                  href="/auth/register"
+                  className="px-9 py-4 rounded-full transition-all hover:opacity-90 hover:scale-105"
+                  style={{ fontWeight: 700, fontSize: "1rem", background: "#F7E7CE", color: "#556B2F", boxShadow: "0 4px 24px rgba(0,0,0,0.15)", textDecoration: "none" }}
+                >
+                  Get Started Free
+                </Link>
+                <Link
+                  href="/auth/login"
+                  className="px-9 py-4 rounded-full transition-all hover:opacity-80"
+                  style={{ fontWeight: 600, fontSize: "1rem", background: "transparent", color: "#F7E7CE", border: "2px solid rgba(247,231,206,0.5)", textDecoration: "none" }}
+                >
+                  View Demo
+                </Link>
+              </div>
             </motion.div>
             <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.5 }}
               className="mt-6" style={{ fontSize: "0.82rem", color: "rgba(247,231,206,0.55)" }}>

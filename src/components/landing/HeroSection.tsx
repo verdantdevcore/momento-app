@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "motion/react";
 
 const PHOTOS = [
@@ -57,10 +58,18 @@ export function HeroSection() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 items-center md:items-start">
-            <button onClick={() => scrollTo("#final-cta")} className="px-8 py-4 rounded-full border-none cursor-pointer transition-all hover:opacity-90 hover:scale-105" style={{ fontWeight: 700, fontSize: "1rem", background: "#556B2F", color: "#F7E7CE", boxShadow: "0 4px 24px rgba(85,107,47,0.3)" }}>
+            <Link
+              href="/auth/register"
+              className="px-8 py-4 rounded-full transition-all hover:opacity-90 hover:scale-105"
+              style={{ fontWeight: 700, fontSize: "1rem", background: "#556B2F", color: "#F7E7CE", boxShadow: "0 4px 24px rgba(85,107,47,0.3)", textDecoration: "none" }}
+            >
               Create Your Event
-            </button>
-            <button onClick={() => scrollTo("#how-it-works")} className="px-8 py-4 rounded-full cursor-pointer transition-all hover:opacity-80" style={{ fontWeight: 600, fontSize: "1rem", background: "transparent", color: "#556B2F", border: "2px solid #556B2F" }}>
+            </Link>
+            <button
+              onClick={() => scrollTo("#how-it-works")}
+              className="px-8 py-4 rounded-full cursor-pointer transition-all hover:opacity-80"
+              style={{ fontWeight: 600, fontSize: "1rem", background: "transparent", color: "#556B2F", border: "2px solid #556B2F" }}
+            >
               See How It Works
             </button>
           </div>

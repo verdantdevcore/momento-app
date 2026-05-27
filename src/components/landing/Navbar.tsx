@@ -60,13 +60,20 @@ export function Navbar() {
               {link.label}
             </button>
           ))}
-          <button
-            onClick={() => handleSectionLink("#final-cta")}
-            className="px-5 py-2 rounded-full border-none cursor-pointer transition-all hover:opacity-90 hover:scale-105"
-            style={{ fontWeight: 600, fontSize: "0.95rem", background: "#556B2F", color: "#F7E7CE" }}
+          <Link
+            href="/auth/login"
+            style={{ fontWeight: 500, fontSize: "0.95rem", color: "#556B2F", textDecoration: "none" }}
+            className="transition-opacity hover:opacity-70"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/auth/register"
+            className="px-5 py-2 rounded-full transition-all hover:opacity-90 hover:scale-105"
+            style={{ fontWeight: 600, fontSize: "0.95rem", background: "#556B2F", color: "#F7E7CE", textDecoration: "none" }}
           >
             Get Started
-          </button>
+          </Link>
         </div>
 
         <button
@@ -90,13 +97,13 @@ export function Navbar() {
               {link.label}
             </button>
           ))}
-          <button
-            onClick={() => handleSectionLink("#final-cta")}
-            className="w-full py-3 rounded-full border-none cursor-pointer"
-            style={{ fontWeight: 600, background: "#556B2F", color: "#F7E7CE" }}
+         <Link
+            href="/auth/register"
+            className="w-full py-3 rounded-full text-center block"
+            style={{ fontWeight: 600, background: "#556B2F", color: "#F7E7CE", textDecoration: "none" }}
           >
             Get Started
-          </button>
+          </Link>
         </div>
       )}
     </nav>
