@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme {
+  --font-urbanist: var(--font-urbanist);
+}
+
 :root {
   --bg-base:       #0A142F;
   --bg-surface:    #161C2D;
@@ -38,7 +42,10 @@
   padding: 0;
 }
 
-html { font-size: 16px; }
+html { 
+  font-size: 16px; 
+  scroll-behavior: smooth;
+}
 
 body {
   font-family: var(--font-urbanist), sans-serif;
