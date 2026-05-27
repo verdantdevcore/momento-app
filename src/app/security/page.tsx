@@ -62,7 +62,7 @@ export default function SecurityPage() {
       <LegalSection title="Incident Response">
         <Para>If a security incident occurs, we aim to:</Para>
         <NumberedList
-          start={12}
+          start={1}
           items={[
             "Investigate the issue promptly",
             "Contain and mitigate risks",

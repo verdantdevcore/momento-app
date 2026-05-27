@@ -94,7 +94,7 @@ export default function UploadPage() {
       }
     }
 
-  async function handleUpload() {
+async function handleUpload() {
     if (!files || files.length === 0 || !event) return
     setUploading(true)
     setError('')
@@ -107,10 +107,19 @@ export default function UploadPage() {
       .split(/[\s,#]+/)
       .map(t => t.trim().toLowerCase())
       .filter(Boolean)
+      .slice(0, 10) // max 10 tags
 
-    const batchId = files.length > 1
-      ? `${Date.now()}-${Math.random().toString(36).slice(2)}`
-      : null
+    // F-15: Fetch server-generated batch ID
+    let batchId: string | null = null
+    if (files.length > 1) {
+      try {
+        const r = await fetch('/api/batch-id')
+        const d = await r.json()
+        batchId = d.batchId
+      } catch {
+        // Non-critical — continue without batch grouping
+      }
+    }
 
     try {
       for (let i = 0; i < files.length; i++) {
@@ -120,6 +129,9 @@ export default function UploadPage() {
         const formData = new FormData()
         formData.append('file', file)
         formData.append('eventId', event.id)
+        if (guestName)   formData.append('uploadedBy', guestName)
+        if (batchId)     formData.append('batchId', batchId)
+        formData.append('hashtags', JSON.stringify(parsedTags))
 
         const response = await fetch('/api/upload', {
           method: 'POST',
@@ -127,16 +139,8 @@ export default function UploadPage() {
         })
 
         const data = await response.json()
-        if (data.error) throw new Error(data.error)
-
-        await supabase.from('media').insert({
-          event_id: event.id,
-          url: data.url,
-          type: data.type,
-          uploaded_by: guestName,
-          hashtags: parsedTags,
-          batch_id: batchId,
-        })
+        if (!response.ok || data.error) throw new Error(data.error ?? 'Upload failed')
+        // Server now handles the Supabase insert — no client-side DB call needed
       }
       setDone(true)
     } catch (err: any) {

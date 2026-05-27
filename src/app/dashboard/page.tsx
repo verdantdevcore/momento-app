@@ -142,7 +142,7 @@ export default function DashboardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Category</label>
-            <select value={category} onChange={e => setCategory(e.target.value)} style={{ ...input, appearance: 'none' as any }}>
+            <select value={category} onChange={e => setCategory(e.target.value)} style={{ ...input, appearance: 'none' as React.CSSProperties['appearance'] }}>
               <option value="">Select...</option>
               {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -292,67 +292,67 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Events list + create form grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: showForm ? '1fr 1fr' : '1fr', gap: '1.25rem', alignItems: 'start' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>
-                  {filteredEvents.length} {activeCategory !== 'All' ? activeCategory : ''} event{filteredEvents.length !== 1 ? 's' : ''}
+          {/* New event form — full width, top priority when open */}
+          {showForm && (
+            <div style={{ width: '100%' }}>
+              {createForm}
+            </div>
+          )}
+
+          {/* Events list — below form */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>
+                {filteredEvents.length} {activeCategory !== 'All' ? activeCategory : ''} event{filteredEvents.length !== 1 ? 's' : ''}
+              </p>
+              {!showForm && (
+                <button onClick={() => setShowForm(true)} style={{ height: '36px', paddingLeft: '1rem', paddingRight: '1rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.625rem', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  + New event
+                </button>
+              )}
+            </div>
+
+            {filteredEvents.length === 0 && !showForm && (
+              <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', border: '1px dashed var(--border)', padding: '3rem 1rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '2.5rem' }}>{activeCategory !== 'All' ? (categoryEmojis[activeCategory] ?? '🎉') : '🎉'}</span>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem', fontWeight: 600, margin: 0 }}>
+                  {activeCategory !== 'All' ? `No ${activeCategory} events yet` : 'No events yet'}
                 </p>
-                {!showForm && (
-                  <button onClick={() => setShowForm(true)} style={{ height: '36px', paddingLeft: '1rem', paddingRight: '1rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.625rem', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                    + New event
+                {activeCategory === 'All' && (
+                  <button onClick={() => setShowForm(true)} style={{ marginTop: '0.5rem', height: '44px', paddingLeft: '1.25rem', paddingRight: '1.25rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', fontSize: '0.925rem', fontWeight: 600 }}>
+                    + Create event
                   </button>
                 )}
               </div>
-
-              {filteredEvents.length === 0 && (
-                <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', border: '1px dashed var(--border)', padding: '3rem 1rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '2.5rem' }}>{activeCategory !== 'All' ? (categoryEmojis[activeCategory] ?? '🎉') : '🎉'}</span>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem', fontWeight: 600, margin: 0 }}>
-                    {activeCategory !== 'All' ? `No ${activeCategory} events yet` : 'No events yet'}
-                  </p>
-                  {activeCategory === 'All' && (
-                    <button onClick={() => setShowForm(true)} style={{ marginTop: '0.5rem', height: '44px', paddingLeft: '1.25rem', paddingRight: '1.25rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', fontSize: '0.925rem', fontWeight: 600 }}>
-                      + Create event
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {filteredEvents.map(event => (
-                <Link key={event.id} href={`/dashboard/${event.id}`} style={{ display: 'block', backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', padding: '1.125rem', border: '1px solid var(--border)', textDecoration: 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>{event.title}</h4>
-                        {event.category && (
-                          <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: 'var(--accent)', fontSize: '0.7rem', fontWeight: 700, padding: '0.125rem 0.5rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.3)', whiteSpace: 'nowrap' }}>
-                            {categoryEmojis[event.category] ?? ''} {event.category}
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem', marginTop: '0.375rem' }}>
-                        {event.event_date && <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem' }}>📅 {new Date(event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
-                        {event.location && <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem' }}>📍 {event.location}</span>}
-                      </div>
-                      <p style={{ color: 'var(--text-dim)', fontSize: '0.775rem', marginTop: '0.375rem' }}>/{event.slug}</p>
-                    </div>
-                    <span style={{ color: 'var(--text-dim)', fontSize: '1.125rem', flexShrink: 0 }}>›</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {showForm && (
-              <div style={{ position: 'sticky', top: '80px' }}>
-                {createForm}
-              </div>
             )}
+
+            {filteredEvents.map(event => (
+              <Link key={event.id} href={`/dashboard/${event.id}`} style={{ display: 'block', backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', padding: '1.125rem', border: '1px solid var(--border)', textDecoration: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>{event.title}</h4>
+                      {event.category && (
+                        <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: 'var(--accent)', fontSize: '0.7rem', fontWeight: 700, padding: '0.125rem 0.5rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.3)', whiteSpace: 'nowrap' }}>
+                          {categoryEmojis[event.category] ?? ''} {event.category}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem', marginTop: '0.375rem' }}>
+                      {event.event_date && <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem' }}>📅 {new Date(event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                      {event.location && <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem' }}>📍 {event.location}</span>}
+                    </div>
+                    <p style={{ color: 'var(--text-dim)', fontSize: '0.775rem', marginTop: '0.375rem' }}>/{event.slug}</p>
+                  </div>
+                  <span style={{ color: 'var(--text-dim)', fontSize: '1.125rem', flexShrink: 0 }}>›</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+
           </div>
         </div>
       </div>
-    </div>
       <Footer />
     </main>
   )

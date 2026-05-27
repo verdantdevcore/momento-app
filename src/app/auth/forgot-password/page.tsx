@@ -6,6 +6,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { GreenLogoSm } from '@/components/landing/Logo'
 
 export default function ForgotPasswordPage() {
   const supabase = createClient()
@@ -18,16 +19,24 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?type=recovery`,
-    })
+    const ALLOWED_HOSTS = [
+      process.env.NEXT_PUBLIC_APP_URL,
+    ].filter(Boolean) as string[]
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
+    const redirectBase = ALLOWED_HOSTS[0] ?? ''
+    let redirectTo = `${redirectBase}/auth/callback`
+
+    try {
+      const url = new URL(redirectTo)
+      if (!ALLOWED_HOSTS.some(h => url.origin === new URL(h).origin)) {
+        redirectTo = '/auth/callback' // fallback to relative if mismatch
+      }
+    } catch {
+      redirectTo = '/auth/callback'
     }
 
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    if (error) { setError(error.message); setLoading(false); return }
     setSent(true)
     setLoading(false)
   }
@@ -47,7 +56,10 @@ export default function ForgotPasswordPage() {
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)' }}>
+        <Link href="/" style={{ textDecoration: 'none' }}>
+          <GreenLogoSm />
+        </Link>
         <ThemeToggle />
       </div>
 

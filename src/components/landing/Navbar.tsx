@@ -172,7 +172,7 @@ export function Navbar() {
       >
         {/* Sidebar header */}
         <div style={{ padding: "1.25rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(85,107,47,0.1)" }}>
-          <FooterLogo />
+          <GreenLogo />
           <button
             onClick={() => setMenuOpen(false)}
             style={{ background: "none", border: "none", cursor: "pointer", color: "#556B2F", padding: "0.25rem" }}
@@ -215,7 +215,7 @@ export function Navbar() {
         </div>
 
         {/* Facts carousel */}
-        <div style={{ margin: "0 1.5rem", borderRadius: "1rem", background: "linear-gradient(135deg, #f3f7ee 0%, #e8f0de 100%)", padding: "1.25rem 1.5rem", overflow: "hidden", position: "relative", minHeight: "90px" }}>
+        <div style={{ margin: "0.75rem 1.5rem 0", borderRadius: "1rem", background: "linear-gradient(135deg, #f3f7ee 0%, #e8f0de 100%)", padding: "1.25rem 1.5rem", overflow: "hidden", position: "relative", minHeight: "90px" }}>
           <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "#556B2F", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.625rem", opacity: 0.7 }}>
             Did you know?
           </p>
@@ -261,9 +261,9 @@ export function Navbar() {
         <div style={{ padding: "1rem 1.5rem 0.75rem", display: "flex", alignItems: "center", gap: "0.625rem" }}>
           {[
            
-            { href: "https://linkedin.com/company/verdantdevcore", icon: <LinkedInIcon />, label: "LinkedIn" },
-            { href: "https://x.com/verdantdevcore", icon: <XIcon />, label: "X" },
-            { href: "https://instagram.com/verdantdevcore", icon: <InstagramIcon />, label: "Instagram" },
+            { href: "https://linkedin.com/company/share-momento", icon: <LinkedInIcon />, label: "LinkedIn" },
+            { href: "https://x.com/sharemomentoapp", icon: <XIcon />, label: "X" },
+            { href: "https://instagram.com/sharemomentoapp", icon: <InstagramIcon />, label: "Instagram" },
           ].map(({ href, icon, label }) => (
             <a
               key={label}
@@ -301,7 +301,7 @@ export function Navbar() {
             ))}
           </div>
           <p style={{ fontSize: "0.7rem", color: "#aaa" }}>
-            © {year} Verdant DevCore Technologies Inc.
+            © {year} Momento App
           </p>
         </div>
       </aside>

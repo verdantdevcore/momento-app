@@ -6,14 +6,14 @@ export default function TermsPage() {
     <LegalLayout title="Terms of Use" lastUpdated="May 26, 2026">
 
       <Para>
-        These Terms of Use ("Terms") govern your access to and use of Momento App and related
+        These Terms of Use (&quot:Terms&quot:) govern your access to and use of Momento App and related
         services.
       </Para>
       <Para>By accessing or using Momento App, you agree to these Terms.</Para>
 
       <Divider />
 
-      <LegalSection title="16. Eligibility">
+      <LegalSection title="1. Eligibility">
         <Para>
           You must be at least 13 years old (or the minimum legal age in your jurisdiction) to use
           Momento App.
@@ -21,7 +21,7 @@ export default function TermsPage() {
         <Para>By using the platform, you confirm that you meet these requirements.</Para>
       </LegalSection>
 
-      <LegalSection title="17. User Accounts">
+      <LegalSection title="2. User Accounts">
         <Para>You are responsible for:</Para>
         <BulletList items={[
           "Maintaining account confidentiality",
@@ -33,7 +33,7 @@ export default function TermsPage() {
         </Para>
       </LegalSection>
 
-      <LegalSection title="18. User Content">
+      <LegalSection title="3. User Content">
         <Para>Users retain ownership of their uploaded photos, videos, and content.</Para>
         <Para>
           By uploading content to Momento App, you grant us a limited license to:
@@ -47,7 +47,7 @@ export default function TermsPage() {
         <Para>We do not claim ownership of your content.</Para>
       </LegalSection>
 
-      <LegalSection title="19. Acceptable Use">
+      <LegalSection title="4. Acceptable Use">
         <Para>You agree not to:</Para>
         <BulletList items={[
           "Upload unlawful or infringing content",
@@ -62,7 +62,7 @@ export default function TermsPage() {
         </Para>
       </LegalSection>
 
-      <LegalSection title="20. Event Privacy">
+      <LegalSection title="5. Event Privacy">
         <Para>
           Hosts are responsible for managing event access and invite distribution.
         </Para>
@@ -72,7 +72,7 @@ export default function TermsPage() {
         </Para>
       </LegalSection>
 
-      <LegalSection title="21. Intellectual Property">
+      <LegalSection title="6. Intellectual Property">
         <Para>
           All branding, software, designs, logos, and platform materials belonging to Momento App
           are protected by intellectual property laws.
@@ -83,14 +83,14 @@ export default function TermsPage() {
         </Para>
       </LegalSection>
 
-      <LegalSection title="22. Service Availability">
+      <LegalSection title="7. Service Availability">
         <Para>
           We strive to provide reliable service but do not guarantee uninterrupted availability.
         </Para>
         <Para>Features may change, be updated, or discontinued at any time.</Para>
       </LegalSection>
 
-      <LegalSection title="23. Limitation of Liability">
+      <LegalSection title="8. Limitation of Liability">
         <Para>
           To the maximum extent permitted by law, Momento App shall not be liable for:
         </Para>
@@ -104,7 +104,7 @@ export default function TermsPage() {
         <Para>Use of the platform is at your own risk.</Para>
       </LegalSection>
 
-      <LegalSection title="24. Termination">
+      <LegalSection title="10. Termination">
         <Para>
           We may suspend or terminate access to Momento App if users violate these Terms or
           engage in harmful activity.
@@ -112,21 +112,21 @@ export default function TermsPage() {
         <Para>Users may stop using the platform at any time.</Para>
       </LegalSection>
 
-      <LegalSection title="25. Governing Law">
+      <LegalSection title="11. Governing Law">
         <Para>
           These Terms shall be governed by the laws applicable in your operating jurisdiction unless
           otherwise required by local law.
         </Para>
       </LegalSection>
 
-      <LegalSection title="26. Changes to These Terms">
+      <LegalSection title="12. Changes to These Terms">
         <Para>
           We may update these Terms periodically. Continued use of Momento App after updates
           constitutes acceptance of the revised Terms.
         </Para>
       </LegalSection>
 
-      <LegalSection title="27. Contact">
+      <LegalSection title="13. Contact">
         <Para>For legal or policy questions, contact:</Para>
         <Para>
           <MailLink email="legal@sharemomento.app" />

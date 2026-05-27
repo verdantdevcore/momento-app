@@ -9,6 +9,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { formatTimeAgo } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { OliveLogo } from '@/components/landing/Logo'
 
 type Event = {
   id: string
@@ -230,7 +231,12 @@ export default function EventFeedPage() {
   )
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%' }}>
+    <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
+
+      {/* Logo — top center, Instagram-style */}
+      <div style={{ position: 'absolute', top: '0.875rem', left: '50%', transform: 'translateX(-50%)', zIndex: 20, pointerEvents: 'none' }}>
+        <OliveLogo size={28} />
+      </div>
 
       <header
         ref={headerRef}

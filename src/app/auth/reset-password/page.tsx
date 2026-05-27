@@ -4,8 +4,10 @@ export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { GreenLogoSm } from '@/components/landing/Logo'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -54,7 +56,10 @@ export default function ResetPasswordPage() {
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)' }}>
+        <Link href="/" style={{ textDecoration: 'none' }}>
+          <GreenLogoSm />
+        </Link>
         <ThemeToggle />
       </div>
 

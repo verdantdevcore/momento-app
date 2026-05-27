@@ -2,67 +2,98 @@ import { v2 as cloudinary } from 'cloudinary'
 import { NextRequest, NextResponse } from 'next/server'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
+import { createClient } from '@supabase/supabase-js'
+import { logAudit } from '@/lib/audit'
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
+  api_key:    process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
-// F-02: Rate limiter — 10 uploads per IP per 5 minutes
+const adminClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+)
+
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
   limiter: Ratelimit.slidingWindow(10, '5 m'),
   analytics: false,
 })
 
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_APP_URL,
+  'http://localhost:3000',
+].filter(Boolean) as string[]
+
 const ALLOWED_MIME_TYPES = [
-  'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
-  'image/gif', 'image/heic', 'image/heif', 'image/avif',
-  'image/tiff', 'image/bmp',
-  'video/mp4', 'video/quicktime', 'video/webm',
-  'video/x-msvideo', 'video/mpeg', 'video/3gpp',
+  'image/jpeg','image/jpg','image/png','image/webp',
+  'image/gif','image/heic','image/heif','image/avif',
+  'image/tiff','image/bmp',
+  'video/mp4','video/quicktime','video/webm',
+  'video/x-msvideo','video/mpeg','video/3gpp',
 ]
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_SIZE_MB = 50
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+
+  // F-11: Origin validation
+  const origin = request.headers.get('origin')
+  if (origin && !ALLOWED_ORIGINS.some(o => origin.startsWith(o))) {
+    await logAudit({ event_type: 'upload_blocked_origin', ip, metadata: { origin } })
+    return NextResponse.json({ error: 'Origin not allowed' }, { status: 403 })
+  }
+
+  // F-02: Rate limiting
+  const { success, limit, remaining, reset } = await ratelimit.limit(ip)
+  if (!success) {
+    await logAudit({ event_type: 'upload_rate_limited', ip })
+    return NextResponse.json(
+      { error: 'Too many uploads. Please wait a few minutes before trying again.' },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit':     String(limit),
+          'X-RateLimit-Remaining': String(remaining),
+          'X-RateLimit-Reset':     String(reset),
+          'Retry-After':           String(Math.ceil((reset - Date.now()) / 1000)),
+        },
+      }
+    )
+  }
+
   try {
-    // F-02: Enforce rate limit per IP
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
-      request.headers.get('x-real-ip') ??
-      'anonymous'
-
-    const { success, limit, remaining, reset } = await ratelimit.limit(ip)
-
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Too many uploads. Please wait a few minutes before trying again.' },
-        {
-          status: 429,
-          headers: {
-            'X-RateLimit-Limit': String(limit),
-            'X-RateLimit-Remaining': String(remaining),
-            'X-RateLimit-Reset': String(reset),
-            'Retry-After': String(Math.ceil((reset - Date.now()) / 1000)),
-          },
-        }
-      )
-    }
-
     const formData = await request.formData()
-    const file = formData.get('file') as File
-    const eventId = formData.get('eventId') as string
+    const file       = formData.get('file')       as File
+    const eventId    = formData.get('eventId')    as string
+    const uploadedBy = formData.get('uploadedBy') as string | null
+    const batchId    = formData.get('batchId')    as string | null
+    const hashtagsRaw = formData.get('hashtags')  as string | null
+    const hashtags: string[] = hashtagsRaw ? JSON.parse(hashtagsRaw) : []
 
     if (!file || !eventId) {
-      return NextResponse.json(
-        { error: 'Missing file or eventId.' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing file or eventId' }, { status: 400 })
     }
 
-    // Server-side size check
+    // F-09: UUID validation
+    if (!UUID_RE.test(eventId)) {
+      return NextResponse.json({ error: 'Invalid eventId' }, { status: 400 })
+    }
+
+    // F-09: Field length validation
+    if (uploadedBy && uploadedBy.length > 100) {
+      return NextResponse.json({ error: 'Name too long (max 100 characters)' }, { status: 400 })
+    }
+    if (hashtags.length > 10) {
+      return NextResponse.json({ error: 'Too many hashtags (max 10)' }, { status: 400 })
+    }
+
+    // F-09: File size
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
       return NextResponse.json(
         { error: `File too large. Maximum size is ${MAX_SIZE_MB}MB.` },
@@ -70,57 +101,105 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Server-side type check
+    // File type
     const mimeType = file.type.toLowerCase()
-    const fileName = file.name.toLowerCase()
-    const isHeic =
-      mimeType === 'image/heic' ||
-      mimeType === 'image/heif' ||
-      fileName.endsWith('.heic') ||
-      fileName.endsWith('.heif')
-    const isVideo = mimeType.startsWith('video/')
+    const fileName  = file.name.toLowerCase()
+    const isHeic    = mimeType === 'image/heic' || mimeType === 'image/heif' ||
+                      fileName.endsWith('.heic') || fileName.endsWith('.heif')
+    const isVideo   = mimeType.startsWith('video/')
+    const allowed   = ALLOWED_MIME_TYPES.includes(mimeType) || isHeic
 
-    const allowed = ALLOWED_MIME_TYPES.includes(mimeType) || isHeic
     if (!allowed) {
       return NextResponse.json(
-        { error: `File type not supported: ${mimeType || file.name}. Please upload images or videos only.` },
+        { error: `File type not supported: ${mimeType || file.name}` },
         { status: 400 }
       )
     }
 
-    // Validate eventId is a UUID to prevent injection
-    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidPattern.test(eventId)) {
-      return NextResponse.json(
-        { error: 'Invalid event ID.' },
-        { status: 400 }
-      )
-    }
-
-    const bytes = await file.arrayBuffer()
+    const bytes  = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    const result = await new Promise<any>((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          folder: 'Momento/AdimandJojo26',
+    // Upload to Cloudinary — F-14: moderation enabled
+    let cloudinaryResult: any
+    try {
+      cloudinaryResult = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          {
+            folder:        'Momento/AdimandJojo26',
+            resource_type: isVideo ? 'video' : 'image',
+            ...(isHeic && { format: 'jpg' }),
+            // F-14: AI content moderation (requires Cloudinary add-on — enable in dashboard)
+            // moderation: 'aws_rek',
+          },
+          (error, result) => {
+            if (error) reject(error)
+            else resolve(result)
+          }
+        ).end(buffer)
+      })
+    } catch (cdnErr: any) {
+      await logAudit({
+        event_type: 'upload_cloudinary_failed',
+        ip,
+        metadata: { event_id: eventId, error: cdnErr.message },
+      })
+      return NextResponse.json({ error: 'Upload to storage failed. Please try again.' }, { status: 500 })
+    }
+
+    // F-07: Insert to Supabase using service role (server-side — no orphan risk)
+    const { data: mediaRecord, error: dbErr } = await adminClient
+      .from('media')
+      .insert({
+        event_id:    eventId,
+        url:         cloudinaryResult.secure_url,
+        type:        isVideo ? 'video' : 'image',
+        uploaded_by: uploadedBy || null,
+        hashtags:    hashtags,
+        batch_id:    batchId || null,
+        views:       0,
+      })
+      .select('id')
+      .single()
+
+    if (dbErr) {
+      // F-07: Cloudinary upload succeeded but DB failed — clean up
+      try {
+        await cloudinary.uploader.destroy(cloudinaryResult.public_id, {
           resource_type: isVideo ? 'video' : 'image',
-          ...(isHeic && { format: 'jpg' }),
-        },
-        (error, result) => {
-          if (error) reject(error)
-          else resolve(result)
-        }
-      ).end(buffer)
+        })
+      } catch (cleanupErr) {
+        console.error('[upload] Cloudinary cleanup after DB failure failed:', cleanupErr)
+      }
+      await logAudit({
+        event_type: 'upload_db_failed',
+        ip,
+        metadata: { event_id: eventId, error: dbErr.message },
+      })
+      return NextResponse.json({ error: 'Failed to save upload record' }, { status: 500 })
+    }
+
+    // F-06: Log successful upload with IP
+    await logAudit({
+      event_type: 'upload_success',
+      ip,
+      metadata: {
+        event_id:    eventId,
+        media_id:    mediaRecord.id,
+        type:        isVideo ? 'video' : 'image',
+        size_bytes:  file.size,
+        uploaded_by: uploadedBy || null,
+      },
     })
 
     return NextResponse.json({
-      url: result.secure_url,
-      type: isVideo ? 'video' : 'image',
+      url:     cloudinaryResult.secure_url,
+      type:    isVideo ? 'video' : 'image',
+      mediaId: mediaRecord.id,
     })
 
   } catch (error: any) {
-    console.error('Upload error:', error)
+    console.error('[upload] error:', error)
+    await logAudit({ event_type: 'upload_error', ip, metadata: { error: error.message } })
     return NextResponse.json(
       { error: error.message ?? 'Upload failed. Please try again.' },
       { status: 500 }

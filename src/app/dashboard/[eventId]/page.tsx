@@ -167,15 +167,25 @@ export default function EventDashboardPage() {
   }
 
   async function handleDeleteMedia(item: Media) {
-    const confirmed = window.confirm('Delete this upload? This cannot be undone.')
-    if (!confirmed) return
-    setDeletingMediaId(item.id)
-    const path = item.url.split('/event-media/')[1]
-    if (path) await supabase.storage.from('event-media').remove([path])
-    await supabase.from('media').delete().eq('id', item.id)
-    setMedia(prev => prev.filter(m => m.id !== item.id))
-    setDeletingMediaId(null)
-  }
+      const confirmed = window.confirm('Delete this upload? This cannot be undone.')
+      if (!confirmed) return
+      setDeletingMediaId(item.id)
+      try {
+        const res = await fetch('/api/delete-media', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mediaId: item.id }),
+        })
+        if (!res.ok) {
+          const d = await res.json()
+          throw new Error(d.error ?? 'Delete failed')
+        }
+        setMedia(prev => prev.filter(m => m.id !== item.id))
+      } catch (err: any) {
+        alert(err.message ?? 'Failed to delete. Please try again.')
+      }
+      setDeletingMediaId(null)
+    }
 
   async function handleDownloadAll() {
     if (media.length === 0) return
