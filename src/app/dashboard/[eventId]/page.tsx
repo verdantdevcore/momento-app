@@ -242,7 +242,7 @@ export default function EventDashboardPage() {
       <div style={{ maxWidth: '32rem', margin: '0 auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
 
         {/* Share card */}
-        <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', padding: '1.25rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+        <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', padding: '1.25rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.875rem', overflow: 'hidden' }}>
           <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>Share with guests</h4>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-input)', borderRadius: '0.75rem', padding: '0.75rem', border: '1px solid var(--border)' }}>
@@ -316,20 +316,26 @@ export default function EventDashboardPage() {
             <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Description" rows={3} style={{ ...inputStyle, minHeight: 'unset', resize: 'none' }} />
             <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Location" style={inputStyle} />
 
-            {/* Date and Time — full row on mobile, side by side on desktop */}
+            {/* Date and Time */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-              <input
-                type="date"
-                value={editDate}
-                onChange={e => setEditDate(e.target.value)}
-                style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer', width: '100%' }}
-              />
-              <input
-                type="time"
-                value={editTime}
-                onChange={e => setEditTime(e.target.value)}
-                style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer', width: '100%' }}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Date</label>
+                <input
+                  type="date"
+                  value={editDate}
+                  onChange={e => setEditDate(e.target.value)}
+                  style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer', width: '100%' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Time</label>
+                <input
+                  type="time"
+                  value={editTime}
+                  onChange={e => setEditTime(e.target.value)}
+                  style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer', width: '100%' }}
+                />
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '0.625rem' }}>
