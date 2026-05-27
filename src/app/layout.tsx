@@ -10,8 +10,15 @@ const urbanist = Urbanist({
 })
 
 export const metadata: Metadata = {
-  title: 'Momento',
-  description: 'Share event memories together',
+  title: 'Momento App — Every Moment. Shared Together.',
+  description:
+    'Momento is the private shared album for every event. Capture, share, and relive photos and videos from every special occasion — privately and effortlessly.',
+  openGraph: {
+    title: 'Momento App — Every Moment. Shared Together.',
+    description:
+      'The easiest way for people at an event to collect and relive every photo and video together in one private shared space.',
+    type: 'website',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

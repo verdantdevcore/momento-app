@@ -215,35 +215,39 @@ export function Navbar() {
         </div>
 
         {/* Facts carousel */}
-        <div style={{ margin: "0.75rem 1.5rem 0", borderRadius: "1rem", background: "linear-gradient(135deg, #f3f7ee 0%, #e8f0de 100%)", padding: "1.25rem 1.5rem", overflow: "hidden", position: "relative", minHeight: "90px" }}>
-          <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "#556B2F", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.625rem", opacity: 0.7 }}>
+        <div style={{ margin: "0.75rem 1.5rem 0", borderRadius: "1rem", background: "linear-gradient(135deg, #f3f7ee 0%, #e8f0de 100%)", padding: "1.25rem 1.5rem 2.5rem", overflow: "hidden" }}>
+          <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "#556B2F", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "0.75rem", opacity: 0.65 }}>
             Did you know?
           </p>
-          {facts.map((fact, i) => (
-            <div
-              key={i}
-              style={{
-                position: i === 0 ? "relative" : "absolute",
-                top: i === 0 ? undefined : "1.25rem",
-                left: i === 0 ? undefined : "1.5rem",
-                right: i === 0 ? undefined : "1.5rem",
-                opacity: i === factIndex ? 1 : 0,
-                transform: i === factIndex ? "translateY(0)" : "translateY(8px)",
-                transition: "opacity 0.5s ease, transform 0.5s ease",
-                pointerEvents: i === factIndex ? "auto" : "none",
-              }}
-            >
-              <p style={{ fontSize: "1.5rem", fontWeight: 900, color: "#556B2F", lineHeight: 1, marginBottom: "0.25rem" }}>
-                {fact.stat}
-              </p>
-              <p style={{ fontSize: "0.825rem", color: "#666", lineHeight: 1.4 }}>
-                {fact.label}
-              </p>
-            </div>
-          ))}
+
+          {/* Fixed height container — all cards absolutely stacked */}
+          <div style={{ position: "relative", height: "52px" }}>
+            {facts.map((fact, i) => (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  opacity: i === factIndex ? 1 : 0,
+                  transform: i === factIndex ? "translateY(0)" : "translateY(6px)",
+                  transition: "opacity 0.45s ease, transform 0.45s ease",
+                  pointerEvents: i === factIndex ? "auto" : "none",
+                }}
+              >
+                <p style={{ fontSize: "1.5rem", fontWeight: 900, color: "#556B2F", lineHeight: 1, margin: "0 0 0.25rem" }}>
+                  {fact.stat}
+                </p>
+                <p style={{ fontSize: "0.825rem", color: "#666", lineHeight: 1.4, margin: 0 }}>
+                  {fact.label}
+                </p>
+              </div>
+            ))}
+          </div>
 
           {/* Dots */}
-          <div style={{ display: "flex", gap: "5px", marginTop: "0.875rem", position: "absolute", bottom: "1rem", left: "1.5rem" }}>
+          <div style={{ display: "flex", gap: "5px", marginTop: "0.875rem" }}>
             {facts.map((_, i) => (
               <button
                 key={i}
