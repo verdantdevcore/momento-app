@@ -9,6 +9,8 @@ import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 import { GreenLogo,  GreenLogoSm  } from '@/components/landing/Logo'
+import { useSearchParams } from 'next/navigation'
+
 
 export default function LoginPage() {
   const router = useRouter()
@@ -19,6 +21,8 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const searchParams = useSearchParams()
+  const callbackError = searchParams.get('error')
 
   async function handleLogin() {
     setLoading(true)
@@ -57,7 +61,7 @@ export default function LoginPage() {
 
           {isDesktop && (
             <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>Sign in to your host account</p>
+              <h3 style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>Sign in to your host account</h3>
             </div>
           )}
 
@@ -66,6 +70,12 @@ export default function LoginPage() {
               <h1 style={{ color: 'var(--text-primary)', margin: '0 0 0.25rem', fontSize: isDesktop ? '1.75rem' : '2rem' }}>Welcome back</h1>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>Enter your email and password to continue</p>
             </div>
+
+            {callbackError && (
+              <p style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)', padding: '0.75rem 1rem', borderRadius: '0.625rem', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                The confirmation link has expired or is invalid. Please request a new one.
+              </p>
+            )}
 
             {error && (
               <p style={{ color: 'var(--text-primary)', backgroundColor: 'var(--border)', borderRadius: '0.5rem', padding: '0.625rem 0.875rem', fontSize: '0.875rem' }}>

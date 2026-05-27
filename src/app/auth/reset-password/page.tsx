@@ -21,8 +21,10 @@ export default function ResetPasswordPage() {
   const [showConfirm, setShowConfirm] = useState(false)
 
   const { isMobile } = useWindowWidth()
+  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?type=recovery`
 
   async function handleUpdate() {
+    
     if (password !== confirm) {
       setError('Passwords do not match')
       return
@@ -34,7 +36,7 @@ export default function ResetPasswordPage() {
 
     setLoading(true)
     setError('')
-
+    
     const { error } = await supabase.auth.updateUser({ password })
 
     if (error) {
