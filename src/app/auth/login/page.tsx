@@ -13,21 +13,80 @@ import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 function CallbackBanner() {
   const searchParams = useSearchParams()
   const confirmed = searchParams.get('confirmed')
-  const callbackError = searchParams.get('error')
+  const hasError  = searchParams.get('error') === 'auth_callback_failed'
+
+  const supabase = createClient()
+  const [email, setEmail]       = useState('')
+  const [sending, setSending]   = useState(false)
+  const [sent, setSent]         = useState(false)
+  const [resendError, setResendError] = useState('')
 
   if (confirmed === 'true') return (
     <p style={{ color: '#4ade80', backgroundColor: 'rgba(74,222,128,0.08)', padding: '0.75rem 1rem', borderRadius: '0.625rem', fontSize: '0.875rem', border: '1px solid rgba(74,222,128,0.2)', margin: 0 }}>
-      ✓ Email confirmed. Sign in to continue.
+      ✓ Email confirmed. Sign in below to continue.
     </p>
   )
 
-  if (callbackError) return (
-    <p style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)', padding: '0.75rem 1rem', borderRadius: '0.625rem', fontSize: '0.875rem', border: '1px solid rgba(239,68,68,0.2)', margin: 0 }}>
-      The confirmation link has expired or is invalid. Please request a new one.
-    </p>
-  )
+  if (!hasError) return null
 
-  return null
+  async function handleResend() {
+    if (!email.trim()) { setResendError('Enter your email address.'); return }
+    setSending(true)
+    setResendError('')
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+      options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback` },
+    })
+    setSending(false)
+    if (error) { setResendError(error.message); return }
+    setSent(true)
+  }
+
+  const resendInput: React.CSSProperties = {
+    flex: 1, backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)',
+    borderRadius: '0.625rem', padding: '0.625rem 0.875rem', color: 'var(--text-primary)',
+    fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box', minHeight: '44px',
+  }
+
+  return (
+    <div style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <p style={{ color: '#ef4444', fontSize: '0.875rem', margin: 0, fontWeight: 600 }}>
+        This confirmation link has expired or already been used.
+      </p>
+      {sent ? (
+        <p style={{ color: '#4ade80', fontSize: '0.825rem', margin: 0 }}>
+          ✓ New confirmation email sent — check your inbox.
+        </p>
+      ) : (
+        <>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>
+            Enter your email to receive a new confirmation link.
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleResend()}
+              style={resendInput}
+            />
+            <button
+              onClick={handleResend}
+              disabled={sending}
+              style={{ backgroundColor: 'var(--accent)', color: '#F7E7CE', border: 'none', borderRadius: '0.625rem', padding: '0.625rem 1rem', fontSize: '0.825rem', fontWeight: 700, cursor: sending ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: sending ? 0.6 : 1, minHeight: '44px' }}
+            >
+              {sending ? 'Sending…' : 'Resend'}
+            </button>
+          </div>
+          {resendError && (
+            <p style={{ color: '#ef4444', fontSize: '0.8rem', margin: 0 }}>{resendError}</p>
+          )}
+        </>
+      )}
+    </div>
+  )
 }
 
 function LoginForm() {
@@ -35,11 +94,11 @@ function LoginForm() {
   const supabase = createClient()
   const { isMobile } = useWindowWidth()
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail]           = useState('')
+  const [password, setPassword]     = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [error, setError]           = useState('')
+  const [loading, setLoading]       = useState(false)
 
   async function handleLogin() {
     setLoading(true)
@@ -63,7 +122,7 @@ function LoginForm() {
           {isMobile ? <GreenLogoSm /> : <GreenLogo />}
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>No account?</span>
+          {!isMobile && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>No account?</span>}
           <Link href="/auth/register" style={{ height: '32px', paddingLeft: '0.75rem', paddingRight: '0.75rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
             Sign up
           </Link>

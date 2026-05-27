@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   title: 'Momento App — Every Moment. Shared Together.',
   description:
     'Momento is the private shared album for every event. Capture, share, and relive photos and videos from every special occasion — privately and effortlessly.',
+    icons: {
+      icon: '/favicon.svg',
+      apple: '/apple-touch-icon.svg',
+    },
   openGraph: {
     title: 'Momento App — Every Moment. Shared Together.',
     description:

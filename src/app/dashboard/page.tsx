@@ -57,6 +57,7 @@ export default function DashboardPage() {
   const [totalViews, setTotalViews] = useState(0)
   const [showCategoryPanel, setShowCategoryPanel] = useState(false)
   const { isMobile } = useWindowWidth()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -142,7 +143,7 @@ export default function DashboardPage() {
           <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Event title *</label>
           <input type="text" placeholder="Enter event title" value={title} onChange={e => setTitle(e.target.value)} style={input} />
         </div>
-       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Category</label>
           <select value={category} onChange={e => setCategory(e.target.value)} style={{ ...input, appearance: 'none' as React.CSSProperties['appearance'] }}>
             <option value="">Select...</option>
@@ -153,14 +154,14 @@ export default function DashboardPage() {
           <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Location</label>
           <input type="text" placeholder="e.g. The Ritz Carlton, Toronto" value={location} onChange={e => setLocation(e.target.value)} style={input} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0.625rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '0.625rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
             <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Date</label>
-            <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} style={{ ...input, colorScheme: 'dark', cursor: 'pointer', padding: '0.875rem 0.5rem' }} />
+            <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} style={{ ...input, colorScheme: 'dark', cursor: 'pointer', paddingLeft: '0.75rem', paddingRight: '0.25rem', paddingTop: '0.875rem', paddingBottom: '0.875rem' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
             <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Time</label>
-            <input type="time" value={eventTime} onChange={e => setEventTime(e.target.value)} style={{ ...input, colorScheme: 'dark', cursor: 'pointer', padding: '0.875rem 0.5rem' }} />
+            <input type="time" value={eventTime} onChange={e => setEventTime(e.target.value)} style={{ ...input, colorScheme: 'dark', cursor: 'pointer', paddingLeft: '0.75rem', paddingRight: '0.25rem', paddingTop: '0.875rem', paddingBottom: '0.875rem' }} />
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -190,23 +191,49 @@ export default function DashboardPage() {
           <span style={{ color: 'var(--border)' }}>|</span>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, whiteSpace: 'nowrap' }}>My Events</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
-          {isAdmin && (
-            <Link
-              href="/admin"
-              style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.775rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap' }}
+
+        {isMobile ? (
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <button
+              onClick={() => setMenuOpen(v => !v)}
+              style={{ height: '36px', width: '36px', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}
             >
-              {isMobile ? '⚙' : '⚙ Admin'}
-            </Link>
-          )}
-          <button
-            onClick={handleSignOut}
-            style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.775rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
-          >
-            {isMobile ? '↪' : 'Sign out'}
-          </button>
-          <ThemeToggle />
-        </div>
+              {menuOpen ? '✕' : '☰'}
+            </button>
+            {menuOpen && (
+              <div style={{ position: 'absolute', top: '44px', right: 0, backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.375rem', display: 'flex', flexDirection: 'column', minWidth: '160px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 50 }}>
+                <div style={{ padding: '0.5rem 0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Theme</span>
+                  <ThemeToggle />
+                </div>
+                {isAdmin && (
+                  <>
+                    <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '0.25rem 0' }} />
+                    <Link href="/admin" onClick={() => setMenuOpen(false)} style={{ padding: '0.625rem 0.875rem', borderRadius: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, textDecoration: 'none', display: 'block' }}>
+                      ⚙ Admin
+                    </Link>
+                  </>
+                )}
+                <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '0.25rem 0' }} />
+                <button onClick={() => { setMenuOpen(false); handleSignOut() }} style={{ padding: '0.625rem 0.875rem', borderRadius: '0.5rem', color: '#ef4444', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none', textAlign: 'left' }}>
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
+            {isAdmin && (
+              <Link href="/admin" style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.775rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                ⚙ Admin
+              </Link>
+            )}
+            <button onClick={handleSignOut} style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.775rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              Sign out
+            </button>
+            <ThemeToggle />
+          </div>
+        )}
       </header>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

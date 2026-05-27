@@ -81,8 +81,8 @@ export default function RegisterPage() {
           {isMobile ? <GreenLogoSm /> : <GreenLogo />}
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Have an account?</span>
-          <Link href="/auth/login" style={{ height: '32px', paddingLeft: '0.875rem', paddingRight: '0.875rem', border: '1px solid var(--border)', color: 'var(--text-muted)', borderRadius: '0.5rem', fontSize: '0.825rem', fontWeight: 600, display: 'flex', alignItems: 'center', backgroundColor: 'var(--bg-input)', textDecoration: 'none' }}>
+          {!isMobile && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Have an account?</span>}
+          <Link href="/auth/login" style={{ height: '36px', paddingLeft: '0.875rem', paddingRight: '0.875rem', border: '1px solid var(--border)', color: 'var(--text-muted)', borderRadius: '0.5rem', fontSize: '0.825rem', fontWeight: 600, display: 'flex', alignItems: 'center', backgroundColor: 'var(--bg-input)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
             Sign in
           </Link>
           <ThemeToggle />
