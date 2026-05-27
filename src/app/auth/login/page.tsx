@@ -10,15 +10,24 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { GreenLogo, GreenLogoSm } from '@/components/landing/Logo'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
-function CallbackError() {
+function CallbackBanner() {
   const searchParams = useSearchParams()
+  const confirmed = searchParams.get('confirmed')
   const callbackError = searchParams.get('error')
-  if (!callbackError) return null
-  return (
+
+  if (confirmed === 'true') return (
+    <p style={{ color: '#4ade80', backgroundColor: 'rgba(74,222,128,0.08)', padding: '0.75rem 1rem', borderRadius: '0.625rem', fontSize: '0.875rem', border: '1px solid rgba(74,222,128,0.2)', margin: 0 }}>
+      ✓ Email confirmed. Sign in to continue.
+    </p>
+  )
+
+  if (callbackError) return (
     <p style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)', padding: '0.75rem 1rem', borderRadius: '0.625rem', fontSize: '0.875rem', border: '1px solid rgba(239,68,68,0.2)', margin: 0 }}>
       The confirmation link has expired or is invalid. Please request a new one.
     </p>
   )
+
+  return null
 }
 
 function LoginForm() {
@@ -66,7 +75,7 @@ function LoginForm() {
         <div style={{ width: '100%', maxWidth: '28rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
           <Suspense fallback={null}>
-            <CallbackError />
+            <CallbackBanner />
           </Suspense>
 
           <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1.25rem', padding: '2rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

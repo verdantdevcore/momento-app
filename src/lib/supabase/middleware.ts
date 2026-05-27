@@ -33,7 +33,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Redirect logged-in users away from auth pages
-  if (user && request.nextUrl.pathname.startsWith('/auth')) {
+  // Exception: allow /auth/login?confirmed=true so the success banner shows
+  const isConfirmedLanding = request.nextUrl.pathname === '/auth/login'
+    && request.nextUrl.searchParams.get('confirmed') === 'true'
+
+  if (user && request.nextUrl.pathname.startsWith('/auth') && !isConfirmedLanding) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
