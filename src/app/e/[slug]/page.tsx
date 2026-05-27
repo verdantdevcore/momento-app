@@ -233,10 +233,10 @@ export default function EventFeedPage() {
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%', position: 'relative' }}>
   
-      {/* Logo — top center, Instagram-style */}
+      {/* Logo — top center, Instagram-style
       <div style={{ position: 'absolute', top: '0.875rem', left: '50%', transform: 'translateX(-50%)', zIndex: 20, pointerEvents: 'none' }}>
         <OliveLogo size={28} />
-      </div>
+      </div> */}
 
       <header
         ref={headerRef}
