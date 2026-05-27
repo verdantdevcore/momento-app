@@ -117,14 +117,14 @@ export default function RegisterPage() {
                 {/* Account type toggle */}
                 <div>
                   <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
-                    I am registering as a
+                    I am registering as an
                   </label>
                   <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: 'var(--bg-input)', padding: '0.25rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
                     <button onClick={() => setAccountType('individual')} style={tabBtn('individual')}>
                       👤 Individual
                     </button>
                     <button onClick={() => setAccountType('company')} style={tabBtn('company')}>
-                      🏢 Company / Org
+                      🏢 Organisation
                     </button>
                   </div>
                 </div>

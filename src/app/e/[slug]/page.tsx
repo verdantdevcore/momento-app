@@ -275,11 +275,20 @@ export default function EventFeedPage() {
             </div>
           </div>
 
-          {/* Logo — center (desktop only, hidden on mobile) */}
-          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            className="hidden md:flex"
-          >
-            <OliveLogo size={26} />
+          {/* Logo — desktop only, centered */}
+          <div style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <div className="hidden md:block">
+              <OliveLogo size={26} />
+            </div>
           </div>
 
           {/* Right controls */}

@@ -360,7 +360,7 @@ async function handleUpload() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1.25rem', padding: '1.75rem', width: '100%', maxWidth: '22rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center' }}
+            style={{ backgroundColor: 'var(--bg-base)', borderRadius: '1.25rem', padding: '1.75rem', width: '100%', maxWidth: '22rem', border: '1px solid var(--border)', boxShadow: '0 8px 40px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center' }}
           >
             <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'rgba(245,158,11,0.15)', border: '2px solid #f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
               ⚠️

@@ -316,9 +316,20 @@ export default function EventDashboardPage() {
             <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Description" rows={3} style={{ ...inputStyle, minHeight: 'unset', resize: 'none' }} />
             <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Location" style={inputStyle} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
-              <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} style={{ ...inputStyle, colorScheme: 'dark' }} />
-              <input type="time" value={editTime} onChange={e => setEditTime(e.target.value)} style={{ ...inputStyle, colorScheme: 'dark' }} />
+            {/* Date and Time — full row on mobile, side by side on desktop */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+              <input
+                type="date"
+                value={editDate}
+                onChange={e => setEditDate(e.target.value)}
+                style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer', width: '100%' }}
+              />
+              <input
+                type="time"
+                value={editTime}
+                onChange={e => setEditTime(e.target.value)}
+                style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer', width: '100%' }}
+              />
             </div>
 
             <div style={{ display: 'flex', gap: '0.625rem' }}>
