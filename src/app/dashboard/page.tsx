@@ -10,7 +10,8 @@ import { generateSlug } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { LoadingBar } from '@/components/ui/LoadingBar'
-import { GreenLogo } from '@/components/landing/Logo'
+import { GreenLogo, GreenLogoSm } from '@/components/landing/Logo'
+import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
 type Event = {
   id: string
@@ -29,6 +30,7 @@ const EVENT_CATEGORIES = [
   'Graduation', 'Baby Shower', 'Corporate', 'Conference',
   'Concert', 'Festival', 'Reunion', 'Other'
 ]
+
 
 const categoryEmojis: Record<string, string> = {
   Wedding: '💍', Birthday: '🎂', Anniversary: '🥂', Engagement: '💌',
@@ -54,6 +56,7 @@ export default function DashboardPage() {
   const [totalUploads, setTotalUploads] = useState(0)
   const [totalViews, setTotalViews] = useState(0)
   const [showCategoryPanel, setShowCategoryPanel] = useState(false)
+  const { isMobile } = useWindowWidth()
 
   useEffect(() => {
     async function init() {
@@ -185,7 +188,7 @@ export default function DashboardPage() {
 
       <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <GreenLogo />
+          {isMobile ? <GreenLogoSm /> : <GreenLogo />}
           <span style={{ color: 'var(--border)' }}>|</span>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>My Events</span>
         </div>

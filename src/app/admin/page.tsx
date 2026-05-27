@@ -9,7 +9,8 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { LoadingBar } from '@/components/ui/LoadingBar'
 import { formatTimeAgo } from '@/lib/utils'
-import { GreenLogo } from '@/components/landing/Logo'
+import { GreenLogo, GreenLogoSm } from '@/components/landing/Logo'
+import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
 type Metrics = {
   total_hosts: number
@@ -50,6 +51,7 @@ export default function AdminPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [pageLoading, setPageLoading] = useState(true)
   const [activeSection, setActiveSection] = useState<'overview' | 'hosts'>('overview')
+  const { isMobile } = useWindowWidth()
 
   useEffect(() => {
     async function fetchData() {
@@ -134,7 +136,7 @@ export default function AdminPage() {
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
       <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0 1.5rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <GreenLogo />
+          {isMobile ? <GreenLogoSm /> : <GreenLogo />}
           <span style={{ color: 'var(--border)' }}>|</span>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>Super Admin</span>
         </div>

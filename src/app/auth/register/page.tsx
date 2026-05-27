@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
-import { GreenLogo } from '@/components/landing/Logo'
+import { GreenLogo, GreenLogoSm } from '@/components/landing/Logo'
 
 export default function RegisterPage() {
   const supabase = createClient()
@@ -18,6 +18,8 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
+
+  const { isMobile } = useWindowWidth()
 
   async function handleRegister() {
     setLoading(true)
@@ -43,12 +45,14 @@ export default function RegisterPage() {
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
 
-      <nav style={{ padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)' }}>
-        <GreenLogo />
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Have an account?</span>
-          <Link href="/auth/login" style={{ height: '36px', paddingLeft: '1rem', paddingRight: '1rem', border: '1px solid var(--border)', color: 'var(--text-muted)', borderRadius: '0.625rem', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', backgroundColor: 'var(--bg-input)' }}>
-            Sign in
+      <nav style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)' }}>
+        <Link href="/" style={{ textDecoration: 'none' }}>
+          {isMobile ? <GreenLogoSm /> : <GreenLogo />}
+        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>No account?</span>
+          <Link href="/auth/register" style={{ height: '32px', paddingLeft: '0.75rem', paddingRight: '0.75rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center' }}>
+            Sign up
           </Link>
           <ThemeToggle />
         </div>

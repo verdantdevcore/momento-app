@@ -7,7 +7,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
-import { GreenLogoSm } from '@/components/landing/Logo'
+import { GreenLogo, GreenLogoSm } from '@/components/landing/Logo'
+import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -16,6 +17,8 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const { isMobile } = useWindowWidth()
 
   async function handleUpdate() {
     if (password !== confirm) {
@@ -58,7 +61,7 @@ export default function ResetPasswordPage() {
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)' }}>
         <Link href="/" style={{ textDecoration: 'none' }}>
-          <GreenLogoSm />
+          {isMobile ? <GreenLogoSm /> : <GreenLogo />}
         </Link>
         <ThemeToggle />
       </div>
