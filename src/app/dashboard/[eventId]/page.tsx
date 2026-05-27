@@ -217,22 +217,23 @@ export default function EventDashboardPage() {
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%' }}>
-      <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.625rem', position: 'sticky', top: 0, zIndex: 10 }}>
-        <Link href="/dashboard" style={pillButton}>‹ Back</Link>
-        <GreenLogo />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '1rem' }}>{event.title}</p>
+      <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.625rem 0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'sticky', top: 0, zIndex: 10 }}>
+        <Link href="/dashboard" style={{ ...pillButton, height: '36px', paddingLeft: '0.75rem', paddingRight: '0.75rem', fontSize: '0.825rem', flexShrink: 0 }}>‹ Back</Link>
+        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
+            <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.925rem', maxWidth: '100%' }}>
+              {event.title}
+            </p>
             {event.category && (
-              <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: 'var(--accent)', fontSize: '0.7rem', fontWeight: 700, padding: '0.125rem 0.5rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.3)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: 'var(--accent)', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.3)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                 {event.category}
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.125rem' }}>
-            {event.event_date && <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', margin: 0 }}>📅 {new Date(event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}
-            {event.event_time && <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', margin: 0 }}>🕐 {event.event_time}</p>}
-            {event.location && <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', margin: 0 }}>📍 {event.location}</p>}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.125rem' }}>
+            {event.event_date && <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, whiteSpace: 'nowrap' }}>📅 {new Date(event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}
+            {event.event_time && <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, whiteSpace: 'nowrap' }}>🕐 {event.event_time}</p>}
+            {event.location && <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📍 {event.location}</p>}
           </div>
         </div>
         <ThemeToggle />

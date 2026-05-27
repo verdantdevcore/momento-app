@@ -231,8 +231,8 @@ export default function EventFeedPage() {
   )
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
-
+    <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%', position: 'relative' }}>
+  
       {/* Logo — top center, Instagram-style */}
       <div style={{ position: 'absolute', top: '0.875rem', left: '50%', transform: 'translateX(-50%)', zIndex: 20, pointerEvents: 'none' }}>
         <OliveLogo size={28} />
@@ -240,46 +240,57 @@ export default function EventFeedPage() {
 
       <header
         ref={headerRef}
-        style={{ backgroundColor: 'var(--bg-surface)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', padding: '0.75rem 1rem', position: 'sticky', top: 0, zIndex: 10 }}
+        style={{ backgroundColor: 'var(--bg-surface)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', padding: '0.625rem 1rem', position: 'sticky', top: 0, zIndex: 10 }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          {/* Event info — left */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
-              <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, fontSize: '1rem' }}>
+            {/* Row 1: title + photo count */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.925rem' }}>
                 {event.title}
               </p>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
                 {media.length} {media.length === 1 ? 'photo' : 'photos'}
               </span>
             </div>
-
-            {/* Location, date, time row */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.625rem', marginTop: '0.25rem' }}>
+            {/* Row 2: description · date · time · location */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', marginTop: '0.125rem' }}>
               {event.description && (
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }}>
                   {event.description}
                 </span>
               )}
               {event.event_date && (
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap' }}>
-                  📅 {new Date(event.event_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                  📅 {new Date(event.event_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
                   {event.event_time && ` · ${event.event_time}`}
                 </span>
               )}
               {event.location && (
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
                   📍 {event.location}
                 </span>
               )}
             </div>
           </div>
 
-          {refreshing && (
-            <div style={{ width: '20px', height: '20px', border: '2px solid var(--border)', borderTopColor: 'var(--text-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0, marginTop: '0.25rem' }} />
-          )}
-          <ThemeToggle />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          {/* Logo — center (desktop only, hidden on mobile) */}
+          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="hidden md:flex"
+          >
+            <OliveLogo size={26} />
+          </div>
+
+          {/* Right controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
+            {refreshing && (
+              <div style={{ width: '18px', height: '18px', border: '2px solid var(--border)', borderTopColor: 'var(--text-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            )}
+            <ThemeToggle />
+          </div>
         </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </header>
 
       {/* Hashtag category filter bar */}

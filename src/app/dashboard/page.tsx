@@ -186,20 +186,26 @@ export default function DashboardPage() {
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
       {loading && <LoadingBar />}
 
-      <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
           {isMobile ? <GreenLogoSm /> : <GreenLogo />}
           <span style={{ color: 'var(--border)' }}>|</span>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>My Events</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, whiteSpace: 'nowrap' }}>My Events</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
           {isAdmin && (
-            <Link href="/admin" style={{ height: '36px', paddingLeft: '0.875rem', paddingRight: '0.875rem', borderRadius: '0.625rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-              ⚙ Admin
+            <Link
+              href="/admin"
+              style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.775rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            >
+              {isMobile ? '⚙' : '⚙ Admin'}
             </Link>
           )}
-          <button onClick={handleSignOut} style={{ height: '36px', paddingLeft: '0.875rem', paddingRight: '0.875rem', borderRadius: '0.625rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, cursor: 'pointer' }}>
-            Sign out
+          <button
+            onClick={handleSignOut}
+            style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.775rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            {isMobile ? '↪' : 'Sign out'}
           </button>
           <ThemeToggle />
         </div>
