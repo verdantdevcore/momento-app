@@ -23,9 +23,40 @@ const ratelimit = new Ratelimit({
   analytics: false,
 })
 
-const ALLOWED_ORIGINS = [
-  process.env.NEXT_PUBLIC_APP_URL,
-  'http://localhost:3000',
+// Normalise a URL to just its origin (scheme + host, no trailing slash)
+function toOrigin(url: string | undefined): string | null {
+  if (!url) return null
+  try {
+    return new URL(url).origin
+  } catch {
+    return null
+  }
+}
+
+// Given an origin, return both the apex and www variants so requests
+// from either host are accepted (e.g. sharemomento.app + www.sharemomento.app)
+function withWwwVariants(origin: string | null): string[] {
+  if (!origin) return []
+  try {
+    const url = new URL(origin)
+    const host = url.hostname
+    const variants = new Set<string>([origin])
+    if (host.startsWith('www.')) {
+      variants.add(`${url.protocol}//${host.slice(4)}`)
+    } else {
+      variants.add(`${url.protocol}//www.${host}`)
+    }
+    return [...variants]
+  } catch {
+    return [origin]
+  }
+}
+
+const ALLOWED_ORIGINS: string[] = [
+  ...withWwwVariants(toOrigin(process.env.NEXT_PUBLIC_APP_URL)),
+  ...withWwwVariants(toOrigin('http://localhost:3000')),
+  // Add any Vercel preview pattern you want to allow:
+  // 'https://momento-*.vercel.app',  ← add if you use preview deployments
 ].filter(Boolean) as string[]
 
 const ALLOWED_MIME_TYPES = [
