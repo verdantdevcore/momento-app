@@ -127,10 +127,16 @@ export default function AdminPage() {
     { id: 'hosts'    as const, icon: '👤', label: 'Hosts'    },
   ]
 
+  const navItems = [
+    { id: 'overview' as const, icon: '📊', label: 'Overview' },
+    { id: 'hosts'    as const, icon: '👤', label: 'Hosts'    },
+  ]
+
   if (pageLoading) return (
     <>
       <LoadingBar />
       <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ width: '2rem', height: '2rem', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <div style={{ width: '2rem', height: '2rem', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading platform data...</p>
       </main>
@@ -138,6 +144,18 @@ export default function AdminPage() {
   )
 
   return (
+    <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column', paddingBottom: isMobile ? '4rem' : 0 }}>
+
+      {/* ── Top header ── */}
+      <header style={{
+        backgroundColor: 'var(--bg-surface)',
+        borderBottom: '1px solid var(--border)',
+        paddingLeft: '1rem', paddingRight: '1rem',
+        height: '3.5rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        position: 'sticky', top: 0, zIndex: 30,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column', paddingBottom: isMobile ? '4rem' : 0 }}>
 
       {/* ── Top header ── */}
@@ -171,6 +189,7 @@ export default function AdminPage() {
         </div>
       </header>
 
+      {/* ── Body: sidebar (desktop) + content ── */}
       {/* ── Body: sidebar (desktop) + content ── */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
 
@@ -206,11 +225,47 @@ export default function AdminPage() {
           </aside>
         )}
 
+        {/* Desktop sidebar */}
+        {!isMobile && (
+          <aside style={{
+            width: '12.5rem', backgroundColor: 'var(--bg-surface)',
+            borderRight: '1px solid var(--border)',
+            padding: '1.25rem 0.75rem',
+            display: 'flex', flexDirection: 'column', gap: '0.25rem',
+            flexShrink: 0,
+          }}>
+            <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 0.75rem 0.5rem' }}>Menu</p>
+            {navItems.map(({ id, icon, label }) => (
+              <button key={id} onClick={() => setActiveSection(id)} style={{
+                display: 'flex', alignItems: 'center', gap: '0.625rem',
+                padding: '0.625rem 0.75rem', borderRadius: '0.625rem',
+                color: activeSection === id ? 'var(--text-primary)' : 'var(--text-muted)',
+                fontSize: '0.875rem', fontWeight: 600,
+                background: activeSection === id ? 'rgba(85,107,47,0.15)' : 'none',
+                border: activeSection === id ? '1px solid rgba(85,107,47,0.3)' : '1px solid transparent',
+                cursor: 'pointer', textAlign: 'left', width: '100%',
+              }}>
+                <span>{icon}</span>{label}
+              </button>
+            ))}
+            <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+              <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-input)', borderRadius: '0.625rem', border: '1px solid var(--border)' }}>
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', margin: '0 0 0.25rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Platform</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: 0 }}>Momento v1.0</p>
+              </div>
+            </div>
+          </aside>
+        )}
+
+        {/* Main content area */}
+        <div style={{ flex: 1, padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', overflowX: 'hidden', minWidth: 0 }}>
         {/* Main content area */}
         <div style={{ flex: 1, padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', overflowX: 'hidden', minWidth: 0 }}>
 
           {/* ── OVERVIEW section ── */}
+          {/* ── OVERVIEW section ── */}
           {activeSection === 'overview' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', animation: 'fadeIn 0.2s ease' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', animation: 'fadeIn 0.2s ease' }}>
 
               {/* Stat cards — 2-col on mobile, 4-col auto on desktop */}

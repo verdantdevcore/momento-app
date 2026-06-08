@@ -218,7 +218,7 @@ export default function EventDashboardPage() {
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%' }}>
       <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.625rem 0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'sticky', top: 0, zIndex: 10 }}>
-        <Link href="/dashboard" style={{ ...pillButton, height: '36px', paddingLeft: '0.75rem', paddingRight: '0.75rem', fontSize: '0.825rem', flexShrink: 0 }}>‹ Back</Link>
+        <Link href="/dashboard" style={{ ...pillButton, height: '36px', paddingLeft: '0.75rem', paddingRight: '0.75rem', fontSize: '0.825rem', flexShrink: 0 }}>← Back</Link>
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
             <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.925rem', maxWidth: '100%' }}>

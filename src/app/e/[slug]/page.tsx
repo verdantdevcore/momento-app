@@ -435,7 +435,7 @@ export default function EventFeedPage() {
                     }}
                     style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontSize: '1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 5 }}
                   >
-                    ‹
+                    ←
                   </button>
                 )}
 
@@ -449,7 +449,7 @@ export default function EventFeedPage() {
                     }}
                     style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontSize: '1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 5 }}
                   >
-                    ›
+                    →
                   </button>
                 )}{/* Left arrow */}
                 {card.isBatch && activeIndex > 0 && (
@@ -461,7 +461,7 @@ export default function EventFeedPage() {
                     }}
                     style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontSize: '1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 5 }}
                   >
-                    ‹
+                    ←
                   </button>
                 )}
 
@@ -475,7 +475,7 @@ export default function EventFeedPage() {
                     }}
                     style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontSize: '1.125rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 5 }}
                   >
-                    ›
+                    →
                   </button>
                 )}
               </div>

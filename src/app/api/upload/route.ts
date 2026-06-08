@@ -23,21 +23,9 @@ const ratelimit = new Ratelimit({
   analytics: false,
 })
 
-// Normalise a URL to just its origin (scheme + host, no trailing slash)
-function toOrigin(url: string | undefined): string | null {
-  if (!url) return null
-  try {
-    return new URL(url).origin
-  } catch {
-    return null
-  }
-}
-
-const ALLOWED_ORIGINS: string[] = [
-  toOrigin(process.env.NEXT_PUBLIC_APP_URL),
-  toOrigin('http://localhost:3000'),
-  // Add any Vercel preview pattern you want to allow:
-  // 'https://momento-*.vercel.app',  ← add if you use preview deployments
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_APP_URL,
+  'http://localhost:3000',
 ].filter(Boolean) as string[]
 
 const ALLOWED_MIME_TYPES = [
