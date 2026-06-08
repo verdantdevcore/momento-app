@@ -139,7 +139,7 @@ export default function AdminPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Link href="/dashboard" style={{ height: '32px', paddingLeft: '0.875rem', paddingRight: '0.875rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            ‹ Dashboard
+            ← Dashboard
           </Link>
           <ThemeToggle />
         </div>

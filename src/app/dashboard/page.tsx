@@ -378,7 +378,7 @@ export default function DashboardPage() {
                     </div>
                     <p style={{ color: 'var(--text-dim)', fontSize: '0.775rem', marginTop: '0.375rem' }}>/{event.slug}</p>
                   </div>
-                  <span style={{ color: 'var(--text-dim)', fontSize: '1.125rem', flexShrink: 0 }}>›</span>
+                  <span style={{ color: 'var(--text-dim)', fontSize: '1.125rem', flexShrink: 0 }}>→</span>
                 </div>
               </Link>
             ))}
