@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -12,6 +12,79 @@ import { createClient } from '@/lib/supabase/client'
 import { formatTimeAgo } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { GreenLogo } from '@/components/landing/Logo'
+
+type ConfirmState = { message: string; onConfirm: () => void } | null
+
+function ConfirmModal({ state, onClose }: { state: ConfirmState; onClose: () => void }) {
+  if (!state) return null
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '1rem',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          borderRadius: '1rem',
+          padding: '1.5rem',
+          width: '100%', maxWidth: '360px',
+          display: 'flex', flexDirection: 'column', gap: '1.25rem',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+        }}
+      >
+        <p style={{ color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+          {state.message}
+        </p>
+        <div style={{ display: 'flex', gap: '0.625rem' }}>
+          <button
+            onClick={onClose}
+            style={{ flex: 1, border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 600, color: 'var(--text-muted)', background: 'none', cursor: 'pointer', fontSize: '0.9rem', minHeight: '48px' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => { state.onConfirm(); onClose() }}
+            style={{ flex: 1, border: '1px solid #7f1d1d', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 600, color: '#ef4444', background: 'none', cursor: 'pointer', fontSize: '0.9rem', minHeight: '48px' }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ErrorToast({ message, onClose }: { message: string | null; onClose: () => void }) {
+  useEffect(() => {
+    if (!message) return
+    const t = setTimeout(onClose, 4000)
+    return () => clearTimeout(t)
+  }, [message, onClose])
+  if (!message) return null
+  return (
+    <div
+      style={{
+        position: 'fixed', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)',
+        zIndex: 1100, backgroundColor: '#1a1a1a', color: '#fff',
+        borderRadius: '0.75rem', padding: '0.875rem 1.25rem',
+        fontSize: '0.875rem', fontWeight: 500, maxWidth: 'calc(100vw - 2rem)',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+        display: 'flex', alignItems: 'center', gap: '0.75rem',
+      }}
+    >
+      <span style={{ color: '#ef4444' }}>⚠</span>
+      <span>{message}</span>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '0 0.25rem' }}>✕</button>
+    </div>
+  )
+}
 
 const EVENT_CATEGORIES = [
   'Wedding', 'Birthday', 'Anniversary', 'Engagement',
@@ -82,6 +155,9 @@ export default function EventDashboardPage() {
   const [editCategory, setEditCategory] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null)
+  const [confirmModal, setConfirmModal] = useState<ConfirmState>(null)
+  const [errorToast, setErrorToast] = useState<string | null>(null)
+  const closeConfirm = useCallback(() => setConfirmModal(null), [])
 
   const appUrl = (
     process.env.NEXT_PUBLIC_APP_URL ??
@@ -157,35 +233,41 @@ export default function EventDashboardPage() {
     if (!error && data) { setEvent(data); setEditing(false) }
   }
 
-  async function handleDeleteEvent() {
+  function handleDeleteEvent() {
     if (!event) return
-    const confirmed = window.confirm(`Delete "${event.title}"? This will remove all uploads too.`)
-    if (!confirmed) return
-    setDeleting(true)
-    await supabase.from('events').delete().eq('id', event.id)
-    router.push('/dashboard')
+    setConfirmModal({
+      message: `Delete "${event.title}"? This will remove all uploads too.`,
+      onConfirm: async () => {
+        setDeleting(true)
+        await supabase.from('events').delete().eq('id', event.id)
+        router.push('/dashboard')
+      },
+    })
   }
 
-  async function handleDeleteMedia(item: Media) {
-      const confirmed = window.confirm('Delete this upload? This cannot be undone.')
-      if (!confirmed) return
-      setDeletingMediaId(item.id)
-      try {
-        const res = await fetch('/api/delete-media', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mediaId: item.id }),
-        })
-        if (!res.ok) {
-          const d = await res.json()
-          throw new Error(d.error ?? 'Delete failed')
+  function handleDeleteMedia(item: Media) {
+    setConfirmModal({
+      message: 'Delete this upload? This cannot be undone.',
+      onConfirm: async () => {
+        setDeletingMediaId(item.id)
+        try {
+          const res = await fetch('/api/delete-media', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mediaId: item.id }),
+          })
+          if (!res.ok) {
+            const d = await res.json()
+            throw new Error(d.error ?? 'Delete failed')
+          }
+          setMedia(prev => prev.filter(m => m.id !== item.id))
+        } catch (err: any) {
+          setErrorToast(err.message ?? 'Failed to delete. Please try again.')
         }
-        setMedia(prev => prev.filter(m => m.id !== item.id))
-      } catch (err: any) {
-        alert(err.message ?? 'Failed to delete. Please try again.')
-      }
-      setDeletingMediaId(null)
-    }
+        setDeletingMediaId(null)
+      },
+    })
+  }
 
   async function handleDownloadAll() {
     if (media.length === 0) return
@@ -217,6 +299,8 @@ export default function EventDashboardPage() {
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%' }}>
+      <ConfirmModal state={confirmModal} onClose={closeConfirm} />
+      <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
       <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.625rem 0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'sticky', top: 0, zIndex: 10 }}>
         <Link href="/dashboard" style={{ ...pillButton, height: '36px', paddingLeft: '0.75rem', paddingRight: '0.75rem', fontSize: '0.825rem', flexShrink: 0 }}>← Back</Link>
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
