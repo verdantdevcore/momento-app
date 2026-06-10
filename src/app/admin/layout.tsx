@@ -13,13 +13,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     async function check() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return router.push('/auth/login')
-      const { data: host } = await supabase.from('hosts').select('is_super_admin').eq('id', user.id).single()
-      if (!host?.is_super_admin) return router.push('/dashboard')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.push('/auth/login'); return }
+      const { data: host } = await supabase.from('hosts').select('is_super_admin').eq('id', session.user.id).single()
+      if (!host?.is_super_admin) { router.push('/dashboard'); return }
       setChecked(true)
     }
     check()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') router.push('/auth/login')
+    })
+    return () => subscription.unsubscribe()
   }, [router, supabase])
 
   if (!checked) return (

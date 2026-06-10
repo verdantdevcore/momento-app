@@ -62,8 +62,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return router.push('/auth/login')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.push('/auth/login'); return }
+      const user = session.user
 
       setEmail(user.email ?? '')
 
@@ -83,6 +84,11 @@ export default function ProfilePage() {
       setPageLoading(false)
     }
     init()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') router.push('/auth/login')
+    })
+    return () => subscription.unsubscribe()
   }, [router, supabase])
 
   async function handleSave() {
@@ -90,8 +96,8 @@ export default function ProfilePage() {
     setError('')
     setSaved(false)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setSaving(false); return }
 
     const { error: err } = await supabase
       .from('hosts')
@@ -105,7 +111,7 @@ export default function ProfilePage() {
           : `${firstName.trim()} ${lastName.trim()}`.trim(),
         country: country || null,
       })
-      .eq('id', user.id)
+      .eq('id', session.user.id)
 
     if (err) {
       setError(err.message)

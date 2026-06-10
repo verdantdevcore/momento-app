@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [eventTime, setEventTime] = useState('')
   const [category, setCategory] = useState('')
   const [loading, setLoading] = useState(false)
+  const [createError, setCreateError] = useState('')
   const [pageLoading, setPageLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('All')
@@ -61,8 +62,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return router.push('/auth/login')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.push('/auth/login'); return }
+      const user = session.user
 
       const { data: host } = await supabase.from('hosts').select('is_super_admin').eq('id', user.id).single()
       if (host?.is_super_admin) setIsAdmin(true)
@@ -82,28 +84,37 @@ export default function DashboardPage() {
       setPageLoading(false)
     }
     init()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') router.push('/auth/login')
+    })
+    return () => subscription.unsubscribe()
   }, [router, supabase])
 
   function resetForm() {
     setTitle(''); setDescription(''); setLocation('')
     setEventDate(''); setEventTime(''); setCategory('')
+    setCreateError('')
     setShowForm(false)
   }
 
   async function createEvent() {
     if (!title.trim()) return
     setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    setCreateError('')
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setLoading(false); return }
     const slug = generateSlug(title)
     const { data, error } = await supabase
       .from('events')
-      .insert({ host_id: user.id, title, description, location: location || null, event_date: eventDate || null, event_time: eventTime || null, category: category || null, slug })
+      .insert({ host_id: session.user.id, title, description, location: location || null, event_date: eventDate || null, event_time: eventTime || null, category: category || null, slug })
       .select().single()
     if (!error && data) {
       setEvents(prev => [data, ...prev])
       resetForm()
       router.push(`/dashboard/${data.id}`)
+    } else if (error) {
+      setCreateError(error.message)
     }
     setLoading(false)
   }
@@ -168,6 +179,9 @@ export default function DashboardPage() {
           <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Description</label>
           <textarea placeholder="Tell guests what to expect..." value={description} onChange={e => setDescription(e.target.value)} rows={3} style={{ ...input, minHeight: 'unset', resize: 'none' }} />
         </div>
+        {createError && (
+          <p style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: '0.5rem', padding: '0.625rem 0.875rem', fontSize: '0.825rem', border: '1px solid rgba(239,68,68,0.2)', margin: 0 }}>{createError}</p>
+        )}
         <div style={{ display: 'flex', gap: '0.625rem', paddingTop: '0.25rem' }}>
           <button onClick={createEvent} disabled={loading || !title.trim()} style={{ flex: 1, backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '1rem', minHeight: '52px', opacity: loading || !title.trim() ? 0.4 : 1 }}>
             {loading

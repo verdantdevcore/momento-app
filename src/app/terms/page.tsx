@@ -6,7 +6,7 @@ export default function TermsPage() {
     <LegalLayout title="Terms of Use" lastUpdated="May 26, 2026">
 
       <Para>
-        These Terms of Use (&quot:Terms&quot:) govern your access to and use of Momento App and related
+        These Terms of Use "[Terms]" govern your access to and use of Momento App and related
         services.
       </Para>
       <Para>By accessing or using Momento App, you agree to these Terms.</Para>

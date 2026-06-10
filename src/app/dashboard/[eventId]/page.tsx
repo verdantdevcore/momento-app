@@ -168,15 +168,20 @@ export default function EventDashboardPage() {
 
   useEffect(() => {
     async function fetchEvent() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return router.push('/auth/login')
-      const { data: eventData } = await supabase.from('events').select('*').eq('id', eventId).eq('host_id', user.id).single()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.push('/auth/login'); return }
+      const { data: eventData } = await supabase.from('events').select('*').eq('id', eventId).eq('host_id', session.user.id).single()
       if (!eventData) return router.push('/dashboard')
       setEvent(eventData)
       const { data: mediaData } = await supabase.from('media').select('*').eq('event_id', eventId).order('created_at', { ascending: false })
       if (mediaData) setMedia(mediaData)
     }
     fetchEvent()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') router.push('/auth/login')
+    })
+    return () => subscription.unsubscribe()
   }, [eventId, router, supabase])
 
   async function copyLink() {
