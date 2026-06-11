@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { GreenLogo, FooterLogo } from "./Logo";
+import { createClient } from "@/lib/supabase/client";
 
 const links = [
   { label: "Features", hash: "#features" },
@@ -52,8 +53,20 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [factIndex, setFactIndex] = useState(0);
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsSignedIn(!!session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsSignedIn(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -115,20 +128,32 @@ export function Navbar() {
                 {link.label}
               </button>
             ))}
-            <Link
-              href="/auth/login"
-              style={{ fontWeight: 500, fontSize: "0.95rem", color: "#556B2F", textDecoration: "none" }}
-              className="transition-opacity hover:opacity-70"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/auth/register"
-              className="px-5 py-2 rounded-full transition-all hover:opacity-90 hover:scale-105"
-              style={{ fontWeight: 600, fontSize: "0.95rem", background: "#556B2F", color: "#F7E7CE", textDecoration: "none" }}
-            >
-              Get Started
-            </Link>
+            {isSignedIn ? (
+              <Link
+                href="/dashboard"
+                className="px-5 py-2 rounded-full transition-all hover:opacity-90 hover:scale-105"
+                style={{ fontWeight: 600, fontSize: "0.95rem", background: "#556B2F", color: "#F7E7CE", textDecoration: "none" }}
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  style={{ fontWeight: 500, fontSize: "0.95rem", color: "#556B2F", textDecoration: "none" }}
+                  className="transition-opacity hover:opacity-70"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="px-5 py-2 rounded-full transition-all hover:opacity-90 hover:scale-105"
+                  style={{ fontWeight: 600, fontSize: "0.95rem", background: "#556B2F", color: "#F7E7CE", textDecoration: "none" }}
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile hamburger */}
@@ -197,20 +222,32 @@ export function Navbar() {
           ))}
 
           <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-            <Link
-              href="/auth/register"
-              onClick={() => setMenuOpen(false)}
-              style={{ display: "block", textAlign: "center", padding: "0.875rem", borderRadius: "999px", background: "#556B2F", color: "#F7E7CE", fontWeight: 700, fontSize: "1rem", textDecoration: "none" }}
-            >
-              Get Started Free
-            </Link>
-            <Link
-              href="/auth/login"
-              onClick={() => setMenuOpen(false)}
-              style={{ display: "block", textAlign: "center", padding: "0.875rem", borderRadius: "999px", border: "1.5px solid #556B2F", color: "#556B2F", fontWeight: 600, fontSize: "1rem", textDecoration: "none" }}
-            >
-              Sign In
-            </Link>
+            {isSignedIn ? (
+              <Link
+                href="/dashboard"
+                onClick={() => setMenuOpen(false)}
+                style={{ display: "block", textAlign: "center", padding: "0.875rem", borderRadius: "999px", background: "#556B2F", color: "#F7E7CE", fontWeight: 700, fontSize: "1rem", textDecoration: "none" }}
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/register"
+                  onClick={() => setMenuOpen(false)}
+                  style={{ display: "block", textAlign: "center", padding: "0.875rem", borderRadius: "999px", background: "#556B2F", color: "#F7E7CE", fontWeight: 700, fontSize: "1rem", textDecoration: "none" }}
+                >
+                  Get Started Free
+                </Link>
+                <Link
+                  href="/auth/login"
+                  onClick={() => setMenuOpen(false)}
+                  style={{ display: "block", textAlign: "center", padding: "0.875rem", borderRadius: "999px", border: "1.5px solid #556B2F", color: "#556B2F", fontWeight: 600, fontSize: "1rem", textDecoration: "none" }}
+                >
+                  Sign In
+                </Link>
+              </>
+            )}
           </div>
         </div>
 

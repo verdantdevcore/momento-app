@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -11,6 +11,8 @@ import { LoadingBar } from '@/components/ui/LoadingBar'
 import { formatTimeAgo } from '@/lib/utils'
 import { GreenLogo, GreenLogoSm } from '@/components/landing/Logo'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 type Metrics = {
   total_hosts: number
@@ -31,85 +33,199 @@ type HostStat = {
   total_views: number
 }
 
-type CategoryStat = {
-  category: string
-  count: number
+type AdminEvent = {
+  id: string
+  title: string
+  slug: string
+  category: string | null
+  event_date: string | null
+  location: string | null
+  created_at: string
+  host_id: string
 }
 
-function SortIcon({ col, sortKey, sortDir }: { col: keyof HostStat; sortKey: keyof HostStat; sortDir: 'asc' | 'desc' }) {
+type AuditLog = {
+  id: string
+  event_type: string
+  user_id: string | null
+  user_email: string | null
+  ip_address: string | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+}
+
+type CategoryStat = { category: string; count: number }
+type Section = 'overview' | 'hosts' | 'events' | 'auditlogs'
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const categoryEmojis: Record<string, string> = {
+  Wedding: '💍', Birthday: '🎂', Anniversary: '🥂', Engagement: '💌',
+  Graduation: '🎓', 'Baby Shower': '🍼', Corporate: '💼', Conference: '🎤',
+  Concert: '🎵', Festival: '🎊', Reunion: '🤝', Other: '📌',
+}
+
+const auditIcons: Record<string, string> = {
+  media_deleted: '🗑',
+  media_delete_unauthorised: '🚫',
+  cloudinary_delete_failed: '⚠️',
+  admin_promoted: '⬆️',
+  admin_demoted: '⬇️',
+  signup: '🆕',
+  login: '🔑',
+  logout: '🚪',
+}
+
+function SortIcon<T>({ col, sortKey, sortDir }: { col: keyof T; sortKey: keyof T; sortDir: 'asc' | 'desc' }) {
   if (sortKey !== col) return <span style={{ color: 'var(--border)', marginLeft: '0.25rem' }}>↕</span>
   return <span style={{ color: 'var(--text-primary)', marginLeft: '0.25rem' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export default function AdminPage() {
   const supabase = useMemo(() => createClient(), [])
+  const { isMobile } = useWindowWidth()
+
+  // Data
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [hosts, setHosts] = useState<HostStat[]>([])
+  const [events, setEvents] = useState<AdminEvent[]>([])
   const [categories, setCategories] = useState<CategoryStat[]>([])
-  const [search, setSearch] = useState('')
-  const [sortKey, setSortKey] = useState<keyof HostStat>('created_at')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [mediaItems, setMediaItems] = useState<{ type: string; views: number; event_id: string }[]>([])
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  // UI state
   const [pageLoading, setPageLoading] = useState(true)
-  const [activeSection, setActiveSection] = useState<'overview' | 'hosts'>('overview')
-  const { isMobile } = useWindowWidth()
+  const [auditLoading, setAuditLoading] = useState(false)
+  const [auditLoaded, setAuditLoaded] = useState(false)
+  const [activeSection, setActiveSection] = useState<Section>('overview')
+
+  // Hosts section
+  const [hostSearch, setHostSearch] = useState('')
+  const [hostSortKey, setHostSortKey] = useState<keyof HostStat>('created_at')
+  const [hostSortDir, setHostSortDir] = useState<'asc' | 'desc'>('desc')
+  const [roleLoading, setRoleLoading] = useState<string | null>(null)
+
+  // Events section
+  const [eventSearch, setEventSearch] = useState('')
+  const [eventSortKey, setEventSortKey] = useState<keyof AdminEvent>('created_at')
+  const [eventSortDir, setEventSortDir] = useState<'asc' | 'desc'>('desc')
+
+  // ── Data loading ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     async function fetchData() {
-      const [metricsRes, hostsRes, catsRes] = await Promise.all([
-        supabase.from('platform_metrics').select('*').single(),
-        supabase.from('host_stats').select('*'),
-        supabase.from('events').select('category').not('category', 'is', null),
-      ])
-      if (metricsRes.data) setMetrics(metricsRes.data)
-      if (hostsRes.data) setHosts(hostsRes.data)
-      if (catsRes.data) {
+      // Get the current user's session from the browser client (for currentUserId only)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) setCurrentUserId(session.user.id)
+
+      // All platform data comes from the service-role API route — bypasses RLS
+      const res = await fetch('/api/admin/data')
+      if (!res.ok) { setPageLoading(false); return }
+      const json = await res.json()
+
+      if (json.metrics)    setMetrics(json.metrics)
+      if (json.hosts)      setHosts(json.hosts)
+      if (json.events)     setEvents(json.events)
+      if (json.mediaItems) setMediaItems(json.mediaItems)
+
+      // Derive categories from the full events list
+      if (json.events) {
         const counts: Record<string, number> = {}
-        catsRes.data.forEach((e: { category: string | null }) => {
+        json.events.forEach((e: { category: string | null }) => {
           if (e.category) counts[e.category] = (counts[e.category] ?? 0) + 1
         })
-        const sorted = Object.entries(counts)
-          .map(([category, count]) => ({ category, count }))
-          .sort((a, b) => b.count - a.count)
-        setCategories(sorted)
+        setCategories(
+          Object.entries(counts)
+            .map(([category, count]) => ({ category, count }))
+            .sort((a, b) => b.count - a.count)
+        )
       }
+
       setPageLoading(false)
     }
     fetchData()
   }, [supabase])
 
-  function toggleSort(key: keyof HostStat) {
-    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortKey(key); setSortDir('desc') }
+  const loadAuditLogs = useCallback(async () => {
+    if (auditLoaded) return
+    setAuditLoading(true)
+    try {
+      const res = await fetch('/api/admin/audit-logs?limit=200')
+      if (res.ok) {
+        const json = await res.json()
+        setAuditLogs(json.logs ?? [])
+        setAuditLoaded(true)
+      }
+    } finally {
+      setAuditLoading(false)
+    }
+  }, [auditLoaded])
+
+  useEffect(() => {
+    if (activeSection === 'auditlogs' && !auditLoaded) loadAuditLogs()
+  }, [activeSection, auditLoaded, loadAuditLogs])
+
+  // ── Hosts helpers ─────────────────────────────────────────────────────────
+
+  function toggleHostSort(key: keyof HostStat) {
+    if (hostSortKey === key) setHostSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setHostSortKey(key); setHostSortDir('desc') }
   }
 
-  const filtered = hosts
+  const filteredHosts = hosts
     .filter(h =>
-      h.email.toLowerCase().includes(search.toLowerCase()) ||
-      (h.full_name ?? '').toLowerCase().includes(search.toLowerCase())
+      h.email.toLowerCase().includes(hostSearch.toLowerCase()) ||
+      (h.full_name ?? '').toLowerCase().includes(hostSearch.toLowerCase())
     )
     .sort((a, b) => {
-      const av = a[sortKey] ?? ''
-      const bv = b[sortKey] ?? ''
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0
-      return sortDir === 'asc' ? cmp : -cmp
+      const av = a[hostSortKey] ?? ''; const bv = b[hostSortKey] ?? ''
+      return (hostSortDir === 'asc' ? 1 : -1) * (av < bv ? -1 : av > bv ? 1 : 0)
     })
 
-  const topCategory = categories[0] ?? null
-  const restCategories = categories.slice(1)
-  const maxCount = categories[0]?.count ?? 1
-
-  const categoryEmojis: Record<string, string> = {
-    Wedding: '💍', Birthday: '🎂', Anniversary: '🥂', Engagement: '💌',
-    Graduation: '🎓', 'Baby Shower': '🍼', Corporate: '💼', Conference: '🎤',
-    Concert: '🎵', Festival: '🎊', Reunion: '🤝', Other: '📌',
+  async function handleSetRole(targetId: string, promote: boolean) {
+    setRoleLoading(targetId)
+    try {
+      const res = await fetch('/api/admin/set-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetId, isSuperAdmin: promote }),
+      })
+      if (res.ok) {
+        setHosts(prev => prev.map(h => h.id === targetId ? { ...h, is_super_admin: promote } : h))
+      }
+    } finally {
+      setRoleLoading(null)
+    }
   }
 
-  const statCards = [
-    { label: 'Total Hosts', value: metrics?.total_hosts ?? 0, icon: '👤', sub: 'registered accounts' },
-    { label: 'Total Events', value: metrics?.total_events ?? 0, icon: '🎉', sub: 'events created' },
-    { label: 'Total Uploads', value: metrics?.total_uploads ?? 0, icon: '📸', sub: 'media files' },
-    { label: 'Total Views', value: metrics?.total_views ?? 0, icon: '👁', sub: 'across all feeds' },
-  ]
+  // ── Events helpers ────────────────────────────────────────────────────────
+
+  function toggleEventSort(key: keyof AdminEvent) {
+    if (eventSortKey === key) setEventSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setEventSortKey(key); setEventSortDir('desc') }
+  }
+
+  const filteredEvents = events
+    .filter(e => {
+      const q = eventSearch.toLowerCase()
+      const host = hosts.find(h => h.id === e.host_id)
+      return (
+        e.title.toLowerCase().includes(q) ||
+        (e.location ?? '').toLowerCase().includes(q) ||
+        (e.category ?? '').toLowerCase().includes(q) ||
+        (host?.email ?? '').toLowerCase().includes(q) ||
+        (host?.full_name ?? '').toLowerCase().includes(q)
+      )
+    })
+    .sort((a, b) => {
+      const av = a[eventSortKey] ?? ''; const bv = b[eventSortKey] ?? ''
+      return (eventSortDir === 'asc' ? 1 : -1) * (av < bv ? -1 : av > bv ? 1 : 0)
+    })
+
+  // ── Shared styles ─────────────────────────────────────────────────────────
 
   const thStyle: React.CSSProperties = {
     padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem',
@@ -122,9 +238,91 @@ export default function AdminPage() {
     borderBottom: '1px solid var(--border)', verticalAlign: 'middle',
   }
 
-  const navItems = [
-    { id: 'overview' as const, icon: '📊', label: 'Overview' },
-    { id: 'hosts'    as const, icon: '👤', label: 'Hosts'    },
+  const navItems: { id: Section; icon: string; label: string }[] = [
+    { id: 'overview',  icon: '📊', label: 'Overview'   },
+    { id: 'hosts',     icon: '👤', label: 'Hosts'      },
+    { id: 'events',    icon: '🎉', label: 'Events'     },
+    { id: 'auditlogs', icon: '📋', label: 'Audit Log'  },
+  ]
+
+  // ── Analytics computed values ─────────────────────────────────────────────
+
+  const newHostsThisMonth = useMemo(() => {
+    const now = new Date()
+    return hosts.filter(h => {
+      const d = new Date(h.created_at)
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+    }).length
+  }, [hosts])
+
+  const newEventsThisMonth = useMemo(() => {
+    const now = new Date()
+    return events.filter(e => {
+      const d = new Date(e.created_at)
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+    }).length
+  }, [events])
+
+  const monthlyGrowth = useMemo(() => {
+    const result = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      result.push({
+        key,
+        label: d.toLocaleDateString('en-GB', { month: 'short' }),
+        hosts: hosts.filter(h => h.created_at.startsWith(key)).length,
+        events: events.filter(e => e.created_at.startsWith(key)).length,
+      })
+    }
+    return result
+  }, [hosts, events])
+
+  const maxMonthlyVal = useMemo(
+    () => Math.max(1, ...monthlyGrowth.map(m => Math.max(m.hosts, m.events))),
+    [monthlyGrowth]
+  )
+
+  const imageCount = useMemo(() => mediaItems.filter(m => m.type === 'image').length, [mediaItems])
+  const videoCount = useMemo(() => mediaItems.filter(m => m.type === 'video').length, [mediaItems])
+  const totalMedia = imageCount + videoCount
+
+  const topEventsByViews = useMemo(() => {
+    const acc: Record<string, number> = {}
+    mediaItems.forEach(m => { acc[m.event_id] = (acc[m.event_id] ?? 0) + m.views })
+    return Object.entries(acc)
+      .map(([event_id, views]) => ({ event_id, views }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 5)
+  }, [mediaItems])
+
+  const hostFunnel = useMemo(() => ({
+    inactive: hosts.filter(h => h.event_count === 0).length,
+    light:    hosts.filter(h => h.event_count >= 1 && h.event_count < 5).length,
+    active:   hosts.filter(h => h.event_count >= 5).length,
+  }), [hosts])
+
+  const conversionRate = useMemo(() =>
+    hosts.length > 0
+      ? ((hosts.filter(h => h.event_count > 0).length / hosts.length) * 100).toFixed(0)
+      : '0'
+  , [hosts])
+
+  const recentSignups = useMemo(() =>
+    [...hosts].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5)
+  , [hosts])
+
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const topCategory = categories[0] ?? null
+  const restCategories = categories.slice(1)
+  const maxCount = categories[0]?.count ?? 1
+
+  const statCards = [
+    { label: 'Total Hosts',   value: metrics?.total_hosts   ?? 0, icon: '👤', sub: 'registered accounts'  },
+    { label: 'Total Events',  value: metrics?.total_events  ?? 0, icon: '🎉', sub: 'events created'        },
+    { label: 'Total Uploads', value: metrics?.total_uploads ?? 0, icon: '📸', sub: 'media files'           },
+    { label: 'Total Views',   value: metrics?.total_views   ?? 0, icon: '👁',  sub: 'across all feeds'     },
   ]
 
   if (pageLoading) return (
@@ -137,15 +335,15 @@ export default function AdminPage() {
     </>
   )
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column', paddingBottom: isMobile ? '4rem' : 0 }}>
 
-      {/* ── Top header ── */}
+      {/* Header */}
       <header style={{
-        backgroundColor: 'var(--bg-surface)',
-        borderBottom: '1px solid var(--border)',
-        paddingLeft: '1rem', paddingRight: '1rem',
-        height: '3.5rem',
+        backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)',
+        paddingLeft: '1rem', paddingRight: '1rem', height: '3.5rem',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 30,
       }}>
@@ -162,8 +360,7 @@ export default function AdminPage() {
             borderRadius: '0.5rem', border: '1px solid var(--border)',
             backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)',
             fontSize: '0.8rem', fontWeight: 600,
-            display: 'flex', alignItems: 'center', textDecoration: 'none',
-            whiteSpace: 'nowrap',
+            display: 'flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap',
           }}>
             ‹ Dashboard
           </Link>
@@ -171,7 +368,7 @@ export default function AdminPage() {
         </div>
       </header>
 
-      {/* ── Body: sidebar (desktop) + content ── */}
+      {/* Body */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
 
         {/* Desktop sidebar */}
@@ -180,8 +377,7 @@ export default function AdminPage() {
             width: '12.5rem', backgroundColor: 'var(--bg-surface)',
             borderRight: '1px solid var(--border)',
             padding: '1.25rem 0.75rem',
-            display: 'flex', flexDirection: 'column', gap: '0.25rem',
-            flexShrink: 0,
+            display: 'flex', flexDirection: 'column', gap: '0.25rem', flexShrink: 0,
           }}>
             <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 0.75rem 0.5rem' }}>Menu</p>
             {navItems.map(({ id, icon, label }) => (
@@ -206,17 +402,17 @@ export default function AdminPage() {
           </aside>
         )}
 
-        {/* Main content area */}
+        {/* Content area */}
         <div style={{ flex: 1, padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', overflowX: 'hidden', minWidth: 0 }}>
 
-          {/* ── OVERVIEW section ── */}
+          {/* ── OVERVIEW ─────────────────────────────────────────────────── */}
           {activeSection === 'overview' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', animation: 'fadeIn 0.2s ease' }}>
 
-              {/* Stat cards — 2-col on mobile, 4-col auto on desktop */}
+              {/* ── 1. Platform totals ── */}
               <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.875rem' }}>Platform Overview</p>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(11.25rem, 1fr))', gap: '0.75rem' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.875rem' }}>Platform Totals</p>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '0.75rem' }}>
                   {statCards.map(card => (
                     <div key={card.label} style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: isMobile ? '1rem' : '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -232,7 +428,61 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Computed metrics — stack to 1-col on mobile */}
+              {/* ── 2. This month pulse + conversion ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '0.75rem' }}>
+                {[
+                  { label: 'New Hosts', value: newHostsThisMonth, icon: '🆕', sub: 'this month' },
+                  { label: 'New Events', value: newEventsThisMonth, icon: '✨', sub: 'this month' },
+                  { label: 'Conversion', value: `${conversionRate}%`, icon: '🎯', sub: 'hosts with ≥1 event' },
+                  { label: 'Host Activity', value: `${hostFunnel.active}`, icon: '⚡', sub: 'hosts with 5+ events' },
+                ].map(card => (
+                  <div key={card.label} style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: isMobile ? '0.875rem' : '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.68rem', fontWeight: 600, margin: 0, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{card.label}</p>
+                      <span style={{ fontSize: '1rem' }}>{card.icon}</span>
+                    </div>
+                    <p style={{ color: 'var(--accent)', fontSize: isMobile ? '1.5rem' : '1.75rem', fontWeight: 800, margin: 0, lineHeight: 1, letterSpacing: '-0.02em' }}>{card.value}</p>
+                    <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', margin: 0 }}>{card.sub}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── 3. Growth chart — last 6 months ── */}
+              <div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.875rem' }}>Growth — Last 6 Months</p>
+                <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.125rem 1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1rem' }}>
+                    {[{ color: 'var(--accent)', label: 'New Hosts' }, { color: 'rgba(85,107,47,0.35)', label: 'New Events' }].map(l => (
+                      <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        <div style={{ width: '0.625rem', height: '0.625rem', backgroundColor: l.color, borderRadius: '2px' }} />
+                        <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 600 }}>{l.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: isMobile ? '0.25rem' : '0.5rem', height: '7rem' }}>
+                    {monthlyGrowth.map(m => {
+                      const hostH = maxMonthlyVal > 0 ? (m.hosts / maxMonthlyVal) * 5.5 : 0
+                      const evtH  = maxMonthlyVal > 0 ? (m.events / maxMonthlyVal) * 5.5 : 0
+                      return (
+                        <div key={m.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem', height: '100%', justifyContent: 'flex-end' }}>
+                          <div style={{ width: '100%', display: 'flex', gap: '2px', alignItems: 'flex-end', justifyContent: 'center' }}>
+                            <div style={{ flex: 1, maxWidth: '1.125rem', height: `${hostH}rem`, minHeight: m.hosts > 0 ? '3px' : '0', backgroundColor: 'var(--accent)', borderRadius: '3px 3px 0 0' }} title={`${m.hosts} hosts`} />
+                            <div style={{ flex: 1, maxWidth: '1.125rem', height: `${evtH}rem`, minHeight: m.events > 0 ? '3px' : '0', backgroundColor: 'rgba(85,107,47,0.4)', borderRadius: '3px 3px 0 0' }} title={`${m.events} events`} />
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <p style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 600, margin: 0 }}>{m.label}</p>
+                            {!isMobile && (
+                              <p style={{ fontSize: '0.55rem', color: 'var(--text-dim)', margin: '0.1rem 0 0', opacity: 0.7 }}>{m.hosts}/{m.events}</p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── 4. Engagement ratios ── */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '0.75rem' }}>
                 {[
                   { label: 'Avg uploads / event', value: metrics && metrics.total_events > 0 ? (metrics.total_uploads / metrics.total_events).toFixed(1) : '—' },
@@ -246,28 +496,156 @@ export default function AdminPage() {
                 ))}
               </div>
 
-              {/* Categories */}
+              {/* ── 5. Host engagement funnel ── */}
+              <div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.875rem' }}>Host Engagement Funnel</p>
+                <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.125rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {[
+                    { label: 'Inactive', sub: '0 events created', count: hostFunnel.inactive, color: 'rgba(239,68,68,0.5)' },
+                    { label: 'Getting started', sub: '1–4 events', count: hostFunnel.light, color: 'rgba(234,179,8,0.6)' },
+                    { label: 'Power users', sub: '5+ events', count: hostFunnel.active, color: 'var(--accent)' },
+                  ].map(tier => {
+                    const pct = hosts.length > 0 ? (tier.count / hosts.length) * 100 : 0
+                    return (
+                      <div key={tier.label}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.375rem' }}>
+                          <div>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>{tier.label}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>{tier.sub}</span>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-primary)' }}>{tier.count}</span>
+                            <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginLeft: '0.375rem' }}>{pct.toFixed(0)}%</span>
+                          </div>
+                        </div>
+                        <div style={{ height: '6px', backgroundColor: 'var(--border)', borderRadius: '999px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', backgroundColor: tier.color, borderRadius: '999px', width: `${pct}%`, transition: 'width 0.4s ease' }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ── 6. Media breakdown + top events by views ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '0.75rem' }}>
+
+                {/* Media type split */}
+                <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.125rem' }}>
+                  <h4 style={{ color: 'var(--text-primary)', margin: '0 0 0.875rem', fontSize: '0.925rem', fontWeight: 700 }}>Media Breakdown</h4>
+                  {totalMedia > 0 ? (
+                    <>
+                      <div style={{ display: 'flex', gap: '0.5rem', height: '1.5rem', borderRadius: '999px', overflow: 'hidden', marginBottom: '0.875rem' }}>
+                        <div style={{ flex: imageCount, backgroundColor: 'var(--accent)', transition: 'flex 0.4s ease', minWidth: imageCount > 0 ? '4px' : 0 }} title={`${imageCount} images`} />
+                        <div style={{ flex: videoCount, backgroundColor: 'rgba(85,107,47,0.35)', transition: 'flex 0.4s ease', minWidth: videoCount > 0 ? '4px' : 0 }} title={`${videoCount} videos`} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
+                        {[
+                          { label: 'Images 📷', count: imageCount, color: 'var(--accent)' },
+                          { label: 'Videos 🎥', count: videoCount, color: 'rgba(85,107,47,0.6)' },
+                        ].map(t => (
+                          <div key={t.label} style={{ padding: '0.75rem', borderRadius: '0.625rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)' }}>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.725rem', margin: '0 0 0.25rem', fontWeight: 600 }}>{t.label}</p>
+                            <p style={{ color: 'var(--text-primary)', fontSize: '1.375rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>{t.count.toLocaleString()}</p>
+                            <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', margin: '0.125rem 0 0' }}>{totalMedia > 0 ? ((t.count / totalMedia) * 100).toFixed(0) : 0}% of uploads</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>No uploads yet</p>
+                  )}
+                </div>
+
+                {/* Top events by views */}
+                <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.125rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
+                    <h4 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '0.925rem', fontWeight: 700 }}>Top Events by Views</h4>
+                    <button onClick={() => setActiveSection('events')} style={{ color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>All →</button>
+                  </div>
+                  {topEventsByViews.length === 0 ? (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>No views yet</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                      {topEventsByViews.map((item, i) => {
+                        const ev = events.find(e => e.id === item.event_id)
+                        const maxV = topEventsByViews[0].views
+                        return ev ? (
+                          <div key={item.event_id}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                              <span style={{ fontSize: '0.725rem', fontWeight: 800, color: i === 0 ? 'var(--accent)' : 'var(--text-dim)', flexShrink: 0, width: '1rem', textAlign: 'center' }}>#{i+1}</span>
+                              <p style={{ color: 'var(--text-primary)', fontSize: '0.825rem', fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{ev.title}</p>
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>{item.views.toLocaleString()}</span>
+                            </div>
+                            <div style={{ height: '3px', backgroundColor: 'var(--border)', borderRadius: '999px', overflow: 'hidden', marginLeft: '1.5rem' }}>
+                              <div style={{ height: '100%', backgroundColor: i === 0 ? 'var(--accent)' : 'rgba(85,107,47,0.4)', borderRadius: '999px', width: `${(item.views / maxV) * 100}%` }} />
+                            </div>
+                          </div>
+                        ) : null
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── 7. Top hosts by uploads ── */}
+              <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.125rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.125rem' }}>
+                  <h4 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '0.925rem', fontWeight: 700 }}>Top Hosts by Uploads</h4>
+                  <button onClick={() => setActiveSection('hosts')} style={{ color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>View all →</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                  {[...hosts].sort((a, b) => b.upload_count - a.upload_count).slice(0, 5).map((host, i) => (
+                    <div key={host.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ width: '2rem', height: '2rem', borderRadius: '50%', backgroundColor: i === 0 ? 'var(--accent)' : 'var(--bg-input)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800, color: i === 0 ? '#F7E7CE' : 'var(--text-muted)', flexShrink: 0 }}>{i + 1}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{host.full_name ?? host.email.split('@')[0]}</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: 0 }}>{host.event_count} events · {host.total_views.toLocaleString()} views</p>
+                      </div>
+                      <span style={{ color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 700, flexShrink: 0 }}>{host.upload_count} uploads</span>
+                    </div>
+                  ))}
+                  {hosts.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>No hosts yet</p>}
+                </div>
+              </div>
+
+              {/* ── 8. Recent signups ── */}
+              <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.125rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.125rem' }}>
+                  <h4 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '0.925rem', fontWeight: 700 }}>Recent Signups</h4>
+                  <button onClick={() => setActiveSection('hosts')} style={{ color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>View all →</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                  {recentSignups.map(host => (
+                    <div key={host.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', borderRadius: '0.625rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)' }}>
+                      <div style={{ width: '2rem', height: '2rem', borderRadius: '50%', backgroundColor: 'rgba(85,107,47,0.15)', border: '1px solid rgba(85,107,47,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent)', flexShrink: 0 }}>
+                        {(host.full_name ?? host.email)[0].toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{host.full_name ?? host.email.split('@')[0]}</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{host.email}</p>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.725rem', margin: 0 }}>{formatTimeAgo(host.created_at)}</p>
+                        <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', margin: '0.125rem 0 0' }}>{host.event_count} event{host.event_count !== 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {hosts.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>No signups yet</p>}
+                </div>
+              </div>
+
+              {/* ── 9. Event categories ── */}
               {categories.length > 0 && (
                 <div>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.875rem' }}>Event Categories</p>
-
                   {topCategory && (
                     <div style={{ backgroundColor: 'var(--accent)', borderRadius: '1rem', padding: isMobile ? '1.125rem' : '1.5rem', marginBottom: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', position: 'relative', overflow: 'hidden' }}>
-                      <div style={{ position: 'absolute', right: '-1rem', top: '-1rem', fontSize: '6rem', opacity: 0.15, lineHeight: 1 }}>
-                        {categoryEmojis[topCategory.category] ?? '🏆'}
-                      </div>
+                      <div style={{ position: 'absolute', right: '-1rem', top: '-1rem', fontSize: '6rem', opacity: 0.15, lineHeight: 1 }}>{categoryEmojis[topCategory.category] ?? '🏆'}</div>
                       <div style={{ position: 'relative', zIndex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
-                          <span style={{ backgroundColor: 'rgba(247,231,206,0.2)', color: '#F7E7CE', fontSize: '0.7rem', fontWeight: 700, paddingTop: '0.2rem', paddingBottom: '0.2rem', paddingLeft: '0.5rem', paddingRight: '0.5rem', borderRadius: '999px', border: '1px solid rgba(247,231,206,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                            🏆 Top Category
-                          </span>
-                        </div>
-                        <p style={{ color: '#F7E7CE', fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
-                          {categoryEmojis[topCategory.category] ?? ''} {topCategory.category}
-                        </p>
-                        <p style={{ color: 'rgba(247,231,206,0.75)', fontSize: '0.825rem', margin: '0.25rem 0 0' }}>
-                          {topCategory.count} event{topCategory.count !== 1 ? 's' : ''} · {((topCategory.count / (metrics?.total_events ?? 1)) * 100).toFixed(0)}% of all events
-                        </p>
+                        <span style={{ backgroundColor: 'rgba(247,231,206,0.2)', color: '#F7E7CE', fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '999px', border: '1px solid rgba(247,231,206,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>🏆 Top Category</span>
+                        <p style={{ color: '#F7E7CE', fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 800, margin: '0.375rem 0 0', letterSpacing: '-0.02em' }}>{categoryEmojis[topCategory.category] ?? ''} {topCategory.category}</p>
+                        <p style={{ color: 'rgba(247,231,206,0.75)', fontSize: '0.825rem', margin: '0.25rem 0 0' }}>{topCategory.count} event{topCategory.count !== 1 ? 's' : ''} · {((topCategory.count / (metrics?.total_events ?? 1)) * 100).toFixed(0)}% of all events</p>
                       </div>
                       <div style={{ textAlign: 'right', position: 'relative', zIndex: 1, flexShrink: 0 }}>
                         <p style={{ color: '#F7E7CE', fontSize: isMobile ? '2.5rem' : '3.5rem', fontWeight: 900, margin: 0, lineHeight: 1, letterSpacing: '-0.04em' }}>{topCategory.count}</p>
@@ -275,7 +653,6 @@ export default function AdminPage() {
                       </div>
                     </div>
                   )}
-
                   {restCategories.length > 0 && (
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(12.5rem, 1fr))', gap: '0.625rem' }}>
                       {restCategories.map((cat, i) => (
@@ -298,124 +675,113 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Top hosts by uploads */}
+              {/* ── 10. Recent events ── */}
               <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.125rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.125rem' }}>
-                  <h4 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '0.925rem', fontWeight: 700 }}>Top Hosts by Uploads</h4>
-                  <button onClick={() => setActiveSection('hosts')} style={{ color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>View all →</button>
+                  <h4 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '0.925rem', fontWeight: 700 }}>Recent Events</h4>
+                  <button onClick={() => setActiveSection('events')} style={{ color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>View all →</button>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-                  {[...hosts].sort((a, b) => b.upload_count - a.upload_count).slice(0, 5).map((host, i) => (
-                    <div key={host.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{ width: '2rem', height: '2rem', borderRadius: '50%', backgroundColor: i === 0 ? 'var(--accent)' : 'var(--bg-input)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800, color: i === 0 ? '#F7E7CE' : 'var(--text-muted)', flexShrink: 0 }}>
-                        {i + 1}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {events.slice(0, 5).map(ev => {
+                    const host = hosts.find(h => h.id === ev.host_id)
+                    return (
+                      <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>{categoryEmojis[ev.category ?? ''] ?? '🎉'}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.title}</p>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: 0 }}>{host?.full_name ?? host?.email.split('@')[0] ?? 'Unknown host'} · {formatTimeAgo(ev.created_at)}</p>
+                        </div>
+                        <Link href={`/e/${ev.slug}`} target="_blank" style={{ color: 'var(--text-dim)', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>View →</Link>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {host.full_name ?? host.email.split('@')[0]}
-                        </p>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: 0 }}>
-                          {host.event_count} events · {host.total_views.toLocaleString()} views
-                        </p>
-                      </div>
-                      <span style={{ color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 700, flexShrink: 0 }}>{host.upload_count} uploads</span>
-                    </div>
-                  ))}
+                    )
+                  })}
+                  {events.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>No events yet</p>}
                 </div>
               </div>
             </div>
           )}
 
-          {/* ── HOSTS section ── */}
+          {/* ── HOSTS ────────────────────────────────────────────────────── */}
           {activeSection === 'hosts' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.2s ease' }}>
               <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', flexDirection: isMobile ? 'column' : 'row', gap: '0.75rem' }}>
                 <div>
                   <h3 style={{ color: 'var(--text-primary)', margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 700 }}>Host Management</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>{filtered.length} of {hosts.length} hosts</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>{filteredHosts.length} of {hosts.length} hosts</p>
                 </div>
                 <input
                   type="text"
                   placeholder="Search name or email..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  style={{
-                    width: isMobile ? '100%' : '16.25rem',
-                    boxSizing: 'border-box',
-                    backgroundColor: 'var(--bg-input)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '0.625rem',
-                    paddingTop: '0.5rem', paddingBottom: '0.5rem',
-                    paddingLeft: '0.875rem', paddingRight: '0.875rem',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.875rem',
-                    outline: 'none',
-                  }}
+                  value={hostSearch}
+                  onChange={e => setHostSearch(e.target.value)}
+                  style={{ width: isMobile ? '100%' : '16.25rem', boxSizing: 'border-box', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '0.625rem', padding: '0.5rem 0.875rem', color: 'var(--text-primary)', fontSize: '0.875rem', outline: 'none' }}
                 />
               </div>
 
-              {/* On mobile: card list. On desktop: table */}
+              {/* Mobile cards */}
               {isMobile ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                  {filtered.length === 0 && (
+                  {filteredHosts.length === 0 && (
                     <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '2.5rem', textAlign: 'center' }}>
                       <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>No hosts found</p>
                     </div>
                   )}
-                  {filtered.map(host => (
+                  {filteredHosts.map(host => (
                     <div key={host.id} style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.625rem' }}>
                         <div style={{ minWidth: 0 }}>
-                          <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.925rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {host.full_name ?? 'Unnamed'}
-                          </p>
-                          <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', margin: '0.125rem 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {host.email}
-                          </p>
+                          <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.925rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{host.full_name ?? 'Unnamed'}</p>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', margin: '0.125rem 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{host.email}</p>
                         </div>
                         {host.is_super_admin
-                          ? <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: '#6a8f3a', fontSize: '0.7rem', fontWeight: 700, paddingTop: '0.2rem', paddingBottom: '0.2rem', paddingLeft: '0.6rem', paddingRight: '0.6rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.4)', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: '0.5rem' }}>Admin</span>
-                          : <span style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 600, paddingTop: '0.2rem', paddingBottom: '0.2rem', paddingLeft: '0.6rem', paddingRight: '0.6rem', borderRadius: '999px', border: '1px solid var(--border)', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: '0.5rem' }}>Host</span>
+                          ? <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: '#6a8f3a', fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.4)', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: '0.5rem' }}>Admin</span>
+                          : <span style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid var(--border)', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: '0.5rem' }}>Host</span>
                         }
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.625rem' }}>
-                        {[
-                          { label: 'Events',  value: host.event_count },
-                          { label: 'Uploads', value: host.upload_count },
-                          { label: 'Views',   value: host.total_views.toLocaleString() },
-                        ].map(stat => (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.625rem', marginBottom: '0.625rem' }}>
+                        {[{ label: 'Events', value: host.event_count }, { label: 'Uploads', value: host.upload_count }, { label: 'Views', value: host.total_views.toLocaleString() }].map(stat => (
                           <div key={stat.label} style={{ textAlign: 'center' }}>
                             <p style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.125rem', margin: 0 }}>{stat.value}</p>
                             <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', margin: '0.1rem 0 0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{stat.label}</p>
                           </div>
                         ))}
                       </div>
-                      <p style={{ color: 'var(--text-dim)', fontSize: '0.725rem', margin: '0.625rem 0 0' }}>Joined {formatTimeAgo(host.created_at)}</p>
+                      {host.id !== currentUserId && (
+                        <button
+                          disabled={roleLoading === host.id}
+                          onClick={() => handleSetRole(host.id, !host.is_super_admin)}
+                          style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', fontSize: '0.775rem', fontWeight: 600, cursor: roleLoading === host.id ? 'not-allowed' : 'pointer', border: '1px solid var(--border)', backgroundColor: host.is_super_admin ? 'rgba(239,68,68,0.08)' : 'rgba(85,107,47,0.08)', color: host.is_super_admin ? '#ef4444' : 'var(--accent)', opacity: roleLoading === host.id ? 0.6 : 1 }}
+                        >
+                          {roleLoading === host.id ? 'Updating...' : host.is_super_admin ? 'Revoke Admin' : 'Make Admin'}
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
               ) : (
+                /* Desktop table */
                 <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', overflow: 'hidden' }}>
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '42.5rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '50rem' }}>
                       <thead>
                         <tr>
-                          <th style={thStyle} onClick={() => toggleSort('full_name')}>Name <SortIcon col="full_name" sortKey={sortKey} sortDir={sortDir} /></th>
-                          <th style={thStyle} onClick={() => toggleSort('email')}>Email <SortIcon col="email" sortKey={sortKey} sortDir={sortDir} /></th>
-                          <th style={{ ...thStyle, textAlign: 'center' }} onClick={() => toggleSort('event_count')}>Events <SortIcon col="event_count" sortKey={sortKey} sortDir={sortDir} /></th>
-                          <th style={{ ...thStyle, textAlign: 'center' }} onClick={() => toggleSort('upload_count')}>Uploads <SortIcon col="upload_count" sortKey={sortKey} sortDir={sortDir} /></th>
-                          <th style={{ ...thStyle, textAlign: 'center' }} onClick={() => toggleSort('total_views')}>Views <SortIcon col="total_views" sortKey={sortKey} sortDir={sortDir} /></th>
-                          <th style={thStyle} onClick={() => toggleSort('created_at')}>Joined <SortIcon col="created_at" sortKey={sortKey} sortDir={sortDir} /></th>
+                          <th style={thStyle} onClick={() => toggleHostSort('full_name')}>Name <SortIcon<HostStat> col="full_name" sortKey={hostSortKey} sortDir={hostSortDir} /></th>
+                          <th style={thStyle} onClick={() => toggleHostSort('email')}>Email <SortIcon<HostStat> col="email" sortKey={hostSortKey} sortDir={hostSortDir} /></th>
+                          <th style={{ ...thStyle, textAlign: 'center' }} onClick={() => toggleHostSort('event_count')}>Events <SortIcon<HostStat> col="event_count" sortKey={hostSortKey} sortDir={hostSortDir} /></th>
+                          <th style={{ ...thStyle, textAlign: 'center' }} onClick={() => toggleHostSort('upload_count')}>Uploads <SortIcon<HostStat> col="upload_count" sortKey={hostSortKey} sortDir={hostSortDir} /></th>
+                          <th style={{ ...thStyle, textAlign: 'center' }} onClick={() => toggleHostSort('total_views')}>Views <SortIcon<HostStat> col="total_views" sortKey={hostSortKey} sortDir={hostSortDir} /></th>
+                          <th style={thStyle} onClick={() => toggleHostSort('created_at')}>Joined <SortIcon<HostStat> col="created_at" sortKey={hostSortKey} sortDir={hostSortDir} /></th>
                           <th style={{ ...thStyle, textAlign: 'center' }}>Role</th>
+                          <th style={{ ...thStyle, textAlign: 'center' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filtered.length === 0 && (
-                          <tr><td colSpan={7} style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>No hosts found</td></tr>
+                        {filteredHosts.length === 0 && (
+                          <tr><td colSpan={8} style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>No hosts found</td></tr>
                         )}
-                        {filtered.map((host, i) => (
+                        {filteredHosts.map((host, i) => (
                           <tr key={host.id} style={{ backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
-                            <td style={tdStyle}><p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>{host.full_name ?? 'Unnamed'}</p></td>
+                            <td style={tdStyle}><p style={{ margin: 0, fontWeight: 600 }}>{host.full_name ?? 'Unnamed'}</p></td>
                             <td style={{ ...tdStyle, color: 'var(--text-muted)', fontSize: '0.825rem' }}>{host.email}</td>
                             <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 700 }}>{host.event_count}</td>
                             <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 700 }}>{host.upload_count}</td>
@@ -423,9 +789,213 @@ export default function AdminPage() {
                             <td style={{ ...tdStyle, color: 'var(--text-muted)', fontSize: '0.8rem' }}>{formatTimeAgo(host.created_at)}</td>
                             <td style={{ ...tdStyle, textAlign: 'center' }}>
                               {host.is_super_admin
-                                ? <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: '#6a8f3a', fontSize: '0.7rem', fontWeight: 700, paddingTop: '0.2rem', paddingBottom: '0.2rem', paddingLeft: '0.6rem', paddingRight: '0.6rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.4)', whiteSpace: 'nowrap' }}>Admin</span>
-                                : <span style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 600, paddingTop: '0.2rem', paddingBottom: '0.2rem', paddingLeft: '0.6rem', paddingRight: '0.6rem', borderRadius: '999px', border: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Host</span>
+                                ? <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: '#6a8f3a', fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.4)', whiteSpace: 'nowrap' }}>Admin</span>
+                                : <span style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Host</span>
                               }
+                            </td>
+                            <td style={{ ...tdStyle, textAlign: 'center' }}>
+                              {host.id !== currentUserId ? (
+                                <button
+                                  disabled={roleLoading === host.id}
+                                  onClick={() => handleSetRole(host.id, !host.is_super_admin)}
+                                  style={{ padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: roleLoading === host.id ? 'not-allowed' : 'pointer', border: '1px solid var(--border)', backgroundColor: host.is_super_admin ? 'rgba(239,68,68,0.08)' : 'rgba(85,107,47,0.08)', color: host.is_super_admin ? '#ef4444' : 'var(--accent)', whiteSpace: 'nowrap', opacity: roleLoading === host.id ? 0.6 : 1 }}
+                                >
+                                  {roleLoading === host.id ? '...' : host.is_super_admin ? 'Revoke Admin' : 'Make Admin'}
+                                </button>
+                              ) : (
+                                <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>You</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── EVENTS ───────────────────────────────────────────────────── */}
+          {activeSection === 'events' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.2s ease' }}>
+              <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', flexDirection: isMobile ? 'column' : 'row', gap: '0.75rem' }}>
+                <div>
+                  <h3 style={{ color: 'var(--text-primary)', margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 700 }}>All Events</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>{filteredEvents.length} of {events.length} events</p>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search title, host, category..."
+                  value={eventSearch}
+                  onChange={e => setEventSearch(e.target.value)}
+                  style={{ width: isMobile ? '100%' : '18rem', boxSizing: 'border-box', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '0.625rem', padding: '0.5rem 0.875rem', color: 'var(--text-primary)', fontSize: '0.875rem', outline: 'none' }}
+                />
+              </div>
+
+              {/* Mobile cards */}
+              {isMobile ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                  {filteredEvents.length === 0 && (
+                    <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '2.5rem', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>No events found</p>
+                    </div>
+                  )}
+                  {filteredEvents.map(ev => {
+                    const host = hosts.find(h => h.id === ev.host_id)
+                    return (
+                      <div key={ev.id} style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.625rem' }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
+                              <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.925rem', margin: 0 }}>{ev.title}</p>
+                              {ev.category && <span style={{ backgroundColor: 'rgba(85,107,47,0.15)', color: 'var(--accent)', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.3)', whiteSpace: 'nowrap' }}>{categoryEmojis[ev.category] ?? ''} {ev.category}</span>}
+                            </div>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', margin: '0.25rem 0 0' }}>{host?.full_name ?? host?.email.split('@')[0] ?? 'Unknown'}</p>
+                          </div>
+                          <Link href={`/e/${ev.slug}`} target="_blank" style={{ color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>View →</Link>
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-dim)', flexWrap: 'wrap' }}>
+                          {ev.event_date && <span>📅 {new Date(ev.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                          {ev.location && <span>📍 {ev.location}</span>}
+                          <span>Created {formatTimeAgo(ev.created_at)}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                /* Desktop table */
+                <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '52rem' }}>
+                      <thead>
+                        <tr>
+                          <th style={thStyle} onClick={() => toggleEventSort('title')}>Event <SortIcon<AdminEvent> col="title" sortKey={eventSortKey} sortDir={eventSortDir} /></th>
+                          <th style={thStyle}>Host</th>
+                          <th style={thStyle} onClick={() => toggleEventSort('category')}>Category <SortIcon<AdminEvent> col="category" sortKey={eventSortKey} sortDir={eventSortDir} /></th>
+                          <th style={thStyle} onClick={() => toggleEventSort('event_date')}>Date <SortIcon<AdminEvent> col="event_date" sortKey={eventSortKey} sortDir={eventSortDir} /></th>
+                          <th style={thStyle} onClick={() => toggleEventSort('location')}>Location <SortIcon<AdminEvent> col="location" sortKey={eventSortKey} sortDir={eventSortDir} /></th>
+                          <th style={thStyle} onClick={() => toggleEventSort('created_at')}>Created <SortIcon<AdminEvent> col="created_at" sortKey={eventSortKey} sortDir={eventSortDir} /></th>
+                          <th style={{ ...thStyle, textAlign: 'center' }}>Link</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredEvents.length === 0 && (
+                          <tr><td colSpan={7} style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>No events found</td></tr>
+                        )}
+                        {filteredEvents.map((ev, i) => {
+                          const host = hosts.find(h => h.id === ev.host_id)
+                          return (
+                            <tr key={ev.id} style={{ backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
+                              <td style={tdStyle}>
+                                <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)' }}>{ev.title}</p>
+                                <p style={{ margin: '0.125rem 0 0', fontSize: '0.75rem', color: 'var(--text-dim)' }}>/{ev.slug}</p>
+                              </td>
+                              <td style={{ ...tdStyle }}>
+                                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600 }}>{host?.full_name ?? 'Unnamed'}</p>
+                                <p style={{ margin: '0.125rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{host?.email ?? '—'}</p>
+                              </td>
+                              <td style={tdStyle}>
+                                {ev.category
+                                  ? <span style={{ backgroundColor: 'rgba(85,107,47,0.15)', color: 'var(--accent)', fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.3)', whiteSpace: 'nowrap' }}>{categoryEmojis[ev.category] ?? ''} {ev.category}</span>
+                                  : <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>—</span>
+                                }
+                              </td>
+                              <td style={{ ...tdStyle, color: 'var(--text-muted)', fontSize: '0.825rem', whiteSpace: 'nowrap' }}>
+                                {ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                              </td>
+                              <td style={{ ...tdStyle, color: 'var(--text-muted)', fontSize: '0.825rem', maxWidth: '12rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {ev.location ?? '—'}
+                              </td>
+                              <td style={{ ...tdStyle, color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{formatTimeAgo(ev.created_at)}</td>
+                              <td style={{ ...tdStyle, textAlign: 'center' }}>
+                                <Link href={`/e/${ev.slug}`} target="_blank" style={{ color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>View →</Link>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── AUDIT LOG ────────────────────────────────────────────────── */}
+          {activeSection === 'auditlogs' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.2s ease' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div>
+                  <h3 style={{ color: 'var(--text-primary)', margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 700 }}>Audit Log</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>Last {auditLogs.length} platform events</p>
+                </div>
+                <button
+                  onClick={() => { setAuditLoaded(false); setAuditLogs([]); loadAuditLogs() }}
+                  disabled={auditLoading}
+                  style={{ height: '2rem', paddingLeft: '0.875rem', paddingRight: '0.875rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600, cursor: auditLoading ? 'not-allowed' : 'pointer', opacity: auditLoading ? 0.6 : 1 }}
+                >
+                  {auditLoading ? 'Refreshing...' : '↻ Refresh'}
+                </button>
+              </div>
+
+              {auditLoading && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem' }}>
+                  <div style={{ width: '1.5rem', height: '1.5rem', border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>Loading audit log...</p>
+                </div>
+              )}
+
+              {!auditLoading && auditLogs.length === 0 && (
+                <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '3rem', textAlign: 'center' }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>No audit events recorded yet</p>
+                </div>
+              )}
+
+              {!auditLoading && auditLogs.length > 0 && (
+                <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? 'auto' : '42rem' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ ...thStyle, cursor: 'default' }}>Event</th>
+                          <th style={{ ...thStyle, cursor: 'default' }}>User</th>
+                          {!isMobile && <th style={{ ...thStyle, cursor: 'default' }}>IP</th>}
+                          {!isMobile && <th style={{ ...thStyle, cursor: 'default' }}>Metadata</th>}
+                          <th style={{ ...thStyle, cursor: 'default', whiteSpace: 'nowrap' }}>Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auditLogs.map((log, i) => (
+                          <tr key={log.id ?? i} style={{ backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
+                            <td style={tdStyle}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '1rem', flexShrink: 0 }}>{auditIcons[log.event_type] ?? '📝'}</span>
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 600, whiteSpace: 'nowrap' }}>{log.event_type}</span>
+                              </div>
+                            </td>
+                            <td style={tdStyle}>
+                              {log.user_email
+                                ? <p style={{ margin: 0, fontSize: '0.825rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '12rem' }}>{log.user_email}</p>
+                                : <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>—</span>
+                              }
+                            </td>
+                            {!isMobile && (
+                              <td style={{ ...tdStyle, color: 'var(--text-dim)', fontSize: '0.775rem', whiteSpace: 'nowrap' }}>
+                                {log.ip_address ?? '—'}
+                              </td>
+                            )}
+                            {!isMobile && (
+                              <td style={{ ...tdStyle, fontSize: '0.775rem', color: 'var(--text-muted)', maxWidth: '16rem' }}>
+                                {log.metadata
+                                  ? <span style={{ fontFamily: 'monospace', overflow: 'hidden', display: 'block', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{JSON.stringify(log.metadata)}</span>
+                                  : <span style={{ color: 'var(--text-dim)' }}>—</span>
+                                }
+                              </td>
+                            )}
+                            <td style={{ ...tdStyle, color: 'var(--text-dim)', fontSize: '0.775rem', whiteSpace: 'nowrap' }}>
+                              {formatTimeAgo(log.created_at)}
                             </td>
                           </tr>
                         ))}
@@ -439,33 +1009,28 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* ── Mobile bottom tab bar ── */}
+      {/* Mobile bottom tab bar */}
       {isMobile && (
         <nav style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0,
-          height: '4rem',
-          backgroundColor: 'var(--bg-surface)',
-          borderTop: '1px solid var(--border)',
-          display: 'flex', alignItems: 'stretch',
-          zIndex: 40,
+          position: 'fixed', bottom: 0, left: 0, right: 0, height: '4rem',
+          backgroundColor: 'var(--bg-surface)', borderTop: '1px solid var(--border)',
+          display: 'flex', alignItems: 'stretch', zIndex: 40,
         }}>
           {navItems.map(({ id, icon, label }) => (
             <button
               key={id}
               onClick={() => setActiveSection(id)}
               style={{
-                flex: 1,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                gap: '0.25rem',
+                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem',
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: activeSection === id ? 'var(--accent)' : 'var(--text-muted)',
-                fontSize: '0.7rem', fontWeight: 700,
+                fontSize: '0.6rem', fontWeight: 700,
                 letterSpacing: '0.04em', textTransform: 'uppercase',
                 borderTop: activeSection === id ? '2px solid var(--accent)' : '2px solid transparent',
                 transition: 'color 0.15s ease, border-color 0.15s ease',
               }}
             >
-              <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{icon}</span>
+              <span style={{ fontSize: '1.125rem', lineHeight: 1 }}>{icon}</span>
               {label}
             </button>
           ))}
