@@ -56,16 +56,26 @@ function isOriginAllowed(origin: string | null): boolean {
   return ALLOWED_ORIGINS.includes(requestOrigin)
 }
 
+function isOriginAllowed(origin: string | null): boolean {
+  if (!origin) return true // same-origin server-side calls have no Origin header
+  const requestOrigin = toOrigin(origin) ?? origin
+  return ALLOWED_ORIGINS.includes(requestOrigin)
+}
+
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
 
   // Origin validation
+  // Origin validation
   const origin = request.headers.get('origin')
+  if (!isOriginAllowed(origin)) {
+    await logAudit({ event_type: 'upload_blocked_origin', ip, metadata: { origin, allowed: ALLOWED_ORIGINS } })
   if (!isOriginAllowed(origin)) {
     await logAudit({ event_type: 'upload_blocked_origin', ip, metadata: { origin, allowed: ALLOWED_ORIGINS } })
     return NextResponse.json({ error: 'Origin not allowed' }, { status: 403 })
   }
 
+  // Rate limiting
   // Rate limiting
   const { success, limit, remaining, reset } = await ratelimit.limit(ip)
   if (!success) {

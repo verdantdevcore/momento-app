@@ -165,7 +165,7 @@ export default function AdminPage() {
             display: 'flex', alignItems: 'center', textDecoration: 'none',
             whiteSpace: 'nowrap',
           }}>
-            ← Dashboard
+            ‹ Dashboard
           </Link>
           <ThemeToggle />
         </div>
