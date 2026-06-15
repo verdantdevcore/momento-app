@@ -298,8 +298,10 @@ export default function AdminPage() {
 
   const hostFunnel = useMemo(() => ({
     inactive: hosts.filter(h => h.event_count === 0).length,
-    light:    hosts.filter(h => h.event_count >= 1 && h.event_count < 5).length,
-    active:   hosts.filter(h => h.event_count >= 5).length,
+    light:    hosts.filter(h => h.event_count >= 1  && h.event_count <= 4).length,
+    growth:   hosts.filter(h => h.event_count >= 5  && h.event_count <= 14).length,
+    scale:    hosts.filter(h => h.event_count >= 15 && h.event_count <= 49).length,
+    active:   hosts.filter(h => h.event_count >= 50).length,
   }), [hosts])
 
   const conversionRate = useMemo(() =>
@@ -434,7 +436,7 @@ export default function AdminPage() {
                   { label: 'New Hosts', value: newHostsThisMonth, icon: '🆕', sub: 'this month' },
                   { label: 'New Events', value: newEventsThisMonth, icon: '✨', sub: 'this month' },
                   { label: 'Conversion', value: `${conversionRate}%`, icon: '🎯', sub: 'hosts with ≥1 event' },
-                  { label: 'Host Activity', value: `${hostFunnel.active}`, icon: '⚡', sub: 'hosts with 5+ events' },
+                  { label: 'Host Activity', value: `${hostFunnel.active}`, icon: '⚡', sub: 'hosts with 50+ events' },
                 ].map(card => (
                   <div key={card.label} style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: isMobile ? '0.875rem' : '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -501,9 +503,11 @@ export default function AdminPage() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.875rem' }}>Host Engagement Funnel</p>
                 <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.125rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {[
-                    { label: 'Inactive', sub: '0 events created', count: hostFunnel.inactive, color: 'rgba(239,68,68,0.5)' },
-                    { label: 'Getting started', sub: '1–4 events', count: hostFunnel.light, color: 'rgba(234,179,8,0.6)' },
-                    { label: 'Power users', sub: '5+ events', count: hostFunnel.active, color: 'var(--accent)' },
+                    { label: 'Inactive',       sub: '0 events created', count: hostFunnel.inactive, color: 'rgba(239,68,68,0.5)' },
+                    { label: 'Getting started', sub: '1–4 events',      count: hostFunnel.light,    color: 'rgba(234,179,8,0.6)' },
+                    { label: 'Growth stage',    sub: '5–14 events',     count: hostFunnel.growth,   color: 'rgba(59,130,246,0.6)' },
+                    { label: 'Scale stage',     sub: '15–49 events',    count: hostFunnel.scale,    color: 'rgba(168,85,247,0.6)' },
+                    { label: 'Power users',     sub: '50+ events',      count: hostFunnel.active,   color: 'var(--accent)' },
                   ].map(tier => {
                     const pct = hosts.length > 0 ? (tier.count / hosts.length) * 100 : 0
                     return (
