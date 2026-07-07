@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { generateSlug } from '@/lib/utils'
+import { generateSlug, formatEventDate } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { LoadingBar } from '@/components/ui/LoadingBar'
@@ -387,7 +387,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem', marginTop: '0.375rem' }}>
-                      {event.event_date && <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem' }}>📅 {new Date(event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                      {event.event_date && <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem' }}>📅 {formatEventDate(event.event_date)}</span>}
                       {event.location && <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem' }}>📍 {event.location}</span>}
                     </div>
                     <p style={{ color: 'var(--text-dim)', fontSize: '0.775rem', marginTop: '0.375rem' }}>/{event.slug}</p>

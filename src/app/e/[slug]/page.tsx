@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { formatTimeAgo } from '@/lib/utils'
+import { formatTimeAgo, formatEventDate } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { OliveLogo } from '@/components/landing/Logo'
 
@@ -263,7 +263,7 @@ export default function EventFeedPage() {
               )}
               {event.event_date && (
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
-                  📅 {new Date(event.event_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                  📅 {formatEventDate(event.event_date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
                   {event.event_time && ` · ${event.event_time}`}
                 </span>
               )}
@@ -275,7 +275,7 @@ export default function EventFeedPage() {
             </div>
           </div>
 
-          {/* Logo — desktop only, centered */}
+          {/* Logo — centered, visible on all breakpoints */}
           <div style={{
             position: 'absolute',
             left: '50%',
@@ -286,8 +286,8 @@ export default function EventFeedPage() {
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <div className="hidden md:block">
-              <OliveLogo size={26} />
+            <div>
+              <OliveLogo size={20} />
             </div>
           </div>
 

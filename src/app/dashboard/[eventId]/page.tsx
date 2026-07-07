@@ -9,7 +9,7 @@ import Image from 'next/image'
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react'
 import JSZip from 'jszip'
 import { createClient } from '@/lib/supabase/client'
-import { formatTimeAgo } from '@/lib/utils'
+import { formatTimeAgo, formatEventDate } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { GreenLogo } from '@/components/landing/Logo'
 
@@ -236,7 +236,7 @@ export default function EventDashboardPage() {
             )}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.125rem' }}>
-            {event.event_date && <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, whiteSpace: 'nowrap' }}>📅 {new Date(event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}
+            {event.event_date && <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, whiteSpace: 'nowrap' }}>📅 {formatEventDate(event.event_date)}</p>}
             {event.event_time && <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, whiteSpace: 'nowrap' }}>🕐 {event.event_time}</p>}
             {event.location && <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📍 {event.location}</p>}
           </div>

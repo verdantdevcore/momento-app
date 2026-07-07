@@ -126,21 +126,61 @@ async function handleUpload() {
         const file = files[i]
         setProgress({ current: i + 1, total: files.length })
 
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('eventId', event.id)
-        if (guestName)   formData.append('uploadedBy', guestName)
-        if (batchId)     formData.append('batchId', batchId)
-        formData.append('hashtags', JSON.stringify(parsedTags))
+        // Step 1: ask our server for a short-lived signed upload for this
+        // file. This request is tiny (no file bytes) regardless of the
+        // file size.
+        const sigResponse = await fetch('/api/upload-signature', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId: event.id,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          }),
+        })
+        const sig = await sigResponse.json()
+        if (!sigResponse.ok || sig.error) throw new Error(sig.error ?? 'Upload failed')
 
+        // Step 2: upload the file bytes directly from the browser to
+        // Cloudinary. This bypasses our server entirely, so large files
+        // (mainly videos) are no longer constrained by our serverless
+        // function's request-body size limit.
+        const cdForm = new FormData()
+        cdForm.append('file', file)
+        cdForm.append('api_key', sig.apiKey)
+        cdForm.append('timestamp', String(sig.timestamp))
+        cdForm.append('signature', sig.signature)
+        cdForm.append('folder', sig.folder)
+        if (sig.format) cdForm.append('format', sig.format)
+
+        const cdResponse = await fetch(
+          `https://api.cloudinary.com/v1_1/${sig.cloudName}/${sig.resourceType}/upload`,
+          { method: 'POST', body: cdForm }
+        )
+        const cdResult = await cdResponse.json()
+        if (!cdResponse.ok || cdResult.error) {
+          throw new Error(cdResult.error?.message ?? 'Upload to storage failed. Please try again.')
+        }
+
+        // Step 3: tell our server the upload succeeded so it can save the
+        // media record. This is another small JSON request.
         const response = await fetch('/api/upload', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId: event.id,
+            url: cdResult.secure_url,
+            publicId: cdResult.public_id,
+            resourceType: sig.resourceType,
+            uploadedBy: guestName,
+            batchId,
+            hashtags: parsedTags,
+          }),
         })
 
         const data = await response.json()
         if (!response.ok || data.error) throw new Error(data.error ?? 'Upload failed')
-        // Server now handles the Supabase insert — no client-side DB call needed
       }
       setDone(true)
     } catch (err: any) {
@@ -192,6 +232,14 @@ async function handleUpload() {
         >
           View the feed
         </Link>
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, textDecoration: 'none', padding: '0.5rem' }}
+        >
+          Create your own event →
+        </a>
       </div>
     </main>
   )
@@ -349,6 +397,15 @@ async function handleUpload() {
           >
             {uploading ? `Uploading ${progress?.current} of ${progress?.total}...` : 'Upload'}
           </button>
+
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, textDecoration: 'none', padding: '0.25rem' }}
+          >
+            Create your own event →
+          </a>
 
         </div>
       </div>

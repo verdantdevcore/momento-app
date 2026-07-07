@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { LoadingBar } from '@/components/ui/LoadingBar'
-import { formatTimeAgo } from '@/lib/utils'
+import { formatTimeAgo, formatEventDate } from '@/lib/utils'
 import { GreenLogo, GreenLogoSm } from '@/components/landing/Logo'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
@@ -860,7 +860,7 @@ export default function AdminPage() {
                           <Link href={`/e/${ev.slug}`} target="_blank" style={{ color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>View →</Link>
                         </div>
                         <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-dim)', flexWrap: 'wrap' }}>
-                          {ev.event_date && <span>📅 {new Date(ev.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                          {ev.event_date && <span>📅 {formatEventDate(ev.event_date)}</span>}
                           {ev.location && <span>📍 {ev.location}</span>}
                           <span>Created {formatTimeAgo(ev.created_at)}</span>
                         </div>
@@ -907,7 +907,7 @@ export default function AdminPage() {
                                 }
                               </td>
                               <td style={{ ...tdStyle, color: 'var(--text-muted)', fontSize: '0.825rem', whiteSpace: 'nowrap' }}>
-                                {ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                                {ev.event_date ? formatEventDate(ev.event_date) : '—'}
                               </td>
                               <td style={{ ...tdStyle, color: 'var(--text-muted)', fontSize: '0.825rem', maxWidth: '12rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {ev.location ?? '—'}
