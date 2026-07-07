@@ -242,6 +242,11 @@ export default function EventFeedPage() {
         ref={headerRef}
         style={{ backgroundColor: 'var(--bg-surface)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', padding: '0.625rem 1rem', position: 'sticky', top: 0, zIndex: 10 }}
       >
+        {/* Logo row — mobile & tablet only, own row above the event info */}
+        <div className="flex lg:hidden" style={{ justifyContent: 'center', marginBottom: '0.5rem' }}>
+          <OliveLogo size={20} />
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
           {/* Event info — left */}
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -275,14 +280,13 @@ export default function EventFeedPage() {
             </div>
           </div>
 
-          {/* Logo — centered, visible on all breakpoints */}
-          <div style={{
+          {/* Logo — desktop only, centered inline with the header row */}
+          <div className="hidden lg:flex" style={{
             position: 'absolute',
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)',
             pointerEvents: 'none',
-            display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
