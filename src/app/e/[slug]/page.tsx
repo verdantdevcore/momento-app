@@ -240,10 +240,13 @@ export default function EventFeedPage() {
 
       <header
         ref={headerRef}
-        style={{ backgroundColor: 'var(--bg-surface)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', padding: '0.625rem 1rem', position: 'sticky', top: 0, zIndex: 10 }}
+        style={{ backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 10 }}
       >
         {/* Logo row — mobile & tablet only, own row above the event info */}
-        <div className="flex lg:hidden" style={{ justifyContent: 'center', marginBottom: '0.5rem' }}>
+        <div
+          className="flex lg:hidden"
+          style={{ justifyContent: 'center', backgroundColor: 'var(--bg-base)', borderBottom: '1px solid var(--border)', padding: '1.125rem 1rem 0.875rem' }}
+        >
           <OliveLogo size={20} />
         </div>
 
