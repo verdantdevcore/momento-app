@@ -32,6 +32,15 @@ type Media = {
   batch_id: string | null
 }
 
+function mediaCountLabel(items: Media[]): string {
+  const count = items.length
+  const hasPhoto = items.some(m => m.type === 'image')
+  const hasVideo = items.some(m => m.type === 'video')
+  if (hasPhoto && hasVideo) return `${count} ${count === 1 ? 'item' : 'items'}`
+  if (hasVideo) return `${count} ${count === 1 ? 'video' : 'videos'}`
+  return `${count} ${count === 1 ? 'photo' : 'photos'}`
+}
+
 type FeedCard = {
   id: string
   items: Media[]
@@ -240,26 +249,23 @@ export default function EventFeedPage() {
 
       <header
         ref={headerRef}
-        style={{ backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 10 }}
+        style={{ backgroundColor: 'var(--bg-surface)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', padding: '0.625rem 1rem', position: 'sticky', top: 0, zIndex: 10 }}
       >
         {/* Logo row — mobile & tablet only, own row above the event info */}
-        <div
-          className="flex lg:hidden"
-          style={{ justifyContent: 'center', backgroundColor: 'var(--bg-base)', borderBottom: '1px solid var(--border)', padding: '1.125rem 1rem 0.875rem' }}
-        >
+        <div className="flex lg:hidden" style={{ justifyContent: 'center', marginBottom: '0.5rem' }}>
           <OliveLogo size={20} />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
           {/* Event info — left */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Row 1: title + photo count */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.925rem' }}>
+            {/* Row 1: title + media count */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+              <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.925rem', lineHeight: 1.3 }}>
                 {event.title}
               </p>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {media.length} {media.length === 1 ? 'photo' : 'photos'}
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1.3 }}>
+                {mediaCountLabel(media)}
               </span>
             </div>
             {/* Row 2: description · date · time · location */}
