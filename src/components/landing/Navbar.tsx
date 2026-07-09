@@ -8,23 +8,25 @@ import { GreenLogo, FooterLogo } from "./Logo";
 import { createClient } from "@/lib/supabase/client";
 
 const links = [
-  { label: "Features", hash: "#features" },
   { label: "How It Works", hash: "#how-it-works" },
+  { label: "Features", hash: "#features" },
   { label: "FAQs", hash: "#faqs" },
 ];
 
 const facts = [
-  { stat: "10,000+", label: "Events captured" },
+  { stat: "500+", label: "Events captured" },
   { stat: "Private", label: "By default — no public sharing" },
   { stat: "60 sec", label: "Average setup time" },
   { stat: "Any device", label: "No app download required" },
   { stat: "All formats", label: "Photos & videos supported" },
 ];
 
-function XIcon() {
+function InstagramIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.857L1.254 2.25H8.08l4.263 5.634 5.9-5.634Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
     </svg>
   );
 }
@@ -39,12 +41,10 @@ function LinkedInIcon() {
   );
 }
 
-function InstagramIcon() {
+function XIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.857L1.254 2.25H8.08l4.263 5.634 5.9-5.634Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   );
 }
@@ -302,9 +302,9 @@ export function Navbar() {
         <div style={{ padding: "1rem 1.5rem 0.75rem", display: "flex", alignItems: "center", gap: "0.625rem" }}>
           {[
            
+            { href: "https://instagram.com/sharemomentoapp", icon: <InstagramIcon />, label: "Instagram" },
             { href: "https://linkedin.com/company/share-momento", icon: <LinkedInIcon />, label: "LinkedIn" },
             { href: "https://x.com/sharemomentoapp", icon: <XIcon />, label: "X" },
-            { href: "https://instagram.com/sharemomentoapp", icon: <InstagramIcon />, label: "Instagram" },
           ].map(({ href, icon, label }) => (
             <a
               key={label}
@@ -325,8 +325,8 @@ export function Navbar() {
         <div style={{ padding: "0.75rem 1.5rem 1.5rem", borderTop: "1px solid rgba(85,107,47,0.08)", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
             {[
-              { label: "Privacy Policy", href: "/privacy" },
               { label: "Terms of Use", href: "/terms" },
+              { label: "Privacy Policy", href: "/privacy" },
               { label: "Security", href: "/security" },
             ].map(link => (
               <Link

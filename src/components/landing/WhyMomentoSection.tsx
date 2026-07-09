@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 const COLS = [
   { label: "WhatsApp Groups", items: ["Photos buried in chat", "Disorganized", "Hard to find later", "Not event-focused"], bad: true },
   { label: "Social Media", items: ["Not private", "Public by default", "Not event-specific", "Scattered across apps"], bad: true },
-  { label: "Momento App", items: ["Private & organized", "Built for live events", "Every perspective", "One shared space"], bad: false },
+  { label: "Momento App", items: ["Private & organized", "Built for live events", "Every perspective captured", "One shared space"], bad: false },
 ];
 
 export function WhyMomentoSection() {
@@ -16,7 +16,7 @@ export function WhyMomentoSection() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm mb-4" style={{ background: "#F7E7CE", color: "#556B2F", fontWeight: 600 }}>The difference</div>
           <h2 style={{ fontWeight: 800, fontSize: "clamp(1.8rem, 3.5vw, 2.6rem)", color: "#1a1a1a", lineHeight: 1.2 }}>Why Momento App?</h2>
           <p style={{ fontSize: "1rem", color: "#666", maxWidth: "520px", margin: "0.75rem auto 0", lineHeight: 1.7 }}>
-            Unlike generic cloud storage or social media platforms, Momento App is purpose-built for live events — making memory sharing effortless, collaborative, and private.
+            Unlike generic cloud storage or social media platforms, Momento App is purpose-built for live events — making event memory collection effortless, collaborative, and private.
           </p>
         </motion.div>
 

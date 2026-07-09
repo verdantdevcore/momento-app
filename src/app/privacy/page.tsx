@@ -7,9 +7,9 @@ export default function PrivacyPage() {
     <LegalLayout title="Privacy Policy" lastUpdated="May 26, 2026">
 
       <Para>
-        Welcome to Momento App ("Momento App," "we," "our," or "us"). Your privacy matters to
+        Welcome to Momento App (&#34;Momento App&#34;, &#34;we&#34;, &#34;our&#34;, or &#34;us&#34;). Your privacy matters to
         us. This Privacy Policy explains how we collect, use, protect, and share information when you
-        use our website, mobile applications, and services.
+        use our website, web and mobile applications, and services.
       </Para>
       <Para>By using Momento App, you agree to the practices described below.</Para>
 
