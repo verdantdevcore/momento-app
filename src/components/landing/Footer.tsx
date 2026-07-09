@@ -33,20 +33,20 @@ function InstagramIcon() {
 }
 
 const SOCIAL = [
+  { label: "Instagram",href: "https://www.instagram.com/sharemomentoapp",       Icon: InstagramIcon },
   { label: "LinkedIn", href: "https://www.linkedin.com/company/share-momento", Icon: LinkedInIcon },
   { label: "X",        href: "https://x.com/sharemomentoapp",                  Icon: XIcon },
-  { label: "Instagram",href: "https://www.instagram.com/sharemomentoapp",       Icon: InstagramIcon },
 ];
 
 const NAV_LINKS = [
-  { label: "Features",    hash: "#features" },
   { label: "How It Works",hash: "#how-it-works" },
+  { label: "Features",    hash: "#features" },
   { label: "FAQs",        hash: "#faqs" },
 ];
 
 const LEGAL_LINKS = [
-  { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms of Use",   href: "/terms" },
+  { label: "Privacy Policy", href: "/privacy" },
   { label: "Security Policy",href: "/security" },
 ];
 
@@ -72,7 +72,7 @@ export function Footer() {
             <FooterLogo />
           </Link>
           <p style={{ fontSize: "0.88rem", color: "rgba(247,231,206,0.7)", maxWidth: "240px", lineHeight: 1.65 }}>
-            Private event photo sharing made simple.
+            Collect every guest photo from your event.
           </p>
           <p style={{ fontSize: "0.8rem", color: "rgba(247,231,206,0.45)" }}>
             Your memories, securely shared.
@@ -131,7 +131,7 @@ export function Footer() {
         style={{ borderTop: "1px solid rgba(247,231,206,0.12)" }}
       >
         <p style={{ fontSize: "0.78rem", color: "rgba(247,231,206,0.35)" }}>
-          © 2026 Momento App. All rights reserved.
+          © {new Date().getFullYear() > 2026 ? `2026-${new Date().getFullYear()}` : "2026"} Momento App. All rights reserved.
         </p>
         <div className="flex items-center gap-4">
           {LEGAL_LINKS.map((link, i) => (

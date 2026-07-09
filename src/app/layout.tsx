@@ -10,17 +10,17 @@ const urbanist = Urbanist({
 })
 
 export const metadata: Metadata = {
-  title: 'Momento App — Every Moment. Shared Together.',
+  title: 'Momento App — Collect Every Guest Photo From Your Event.',
   description:
-    'Momento is the private shared album for every event. Capture, share, and relive photos and videos from every special occasion — privately and effortlessly.',
+    'Momento App makes it easy for hosts and guests to instantly capture, share, and relive memorable photos and videos from every special event — privately and effortlessly. No app downloads. No chasing people afterward.',
     icons: {
       icon: '/favicon.svg',
       apple: '/apple-touch-icon.svg',
     },
   openGraph: {
-    title: 'Momento App — Every Moment. Shared Together.',
+    title: 'Momento App — Collect Every Guest Photo From Your Event.',
     description:
-      'The easiest way for people at an event to collect and relive every photo and video together in one private shared space.',
+      'Momento App makes it easy for hosts and guests to instantly capture, share, and relive memorable photos and videos from every special event — privately and effortlessly. No app downloads. No chasing people afterward.',
     type: 'website',
   },
 }

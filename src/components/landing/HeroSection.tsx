@@ -45,16 +45,19 @@ export function HeroSection() {
       <div className="max-w-6xl w-full mx-auto px-6 grid md:grid-cols-2 gap-12 items-center pt-24 pb-12">
         <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="flex flex-col gap-6 text-center md:text-left">
           <div className="inline-flex items-center gap-2 self-center md:self-start px-4 py-1.5 rounded-full text-sm" style={{ background: "#F7E7CE", color: "#556B2F", fontWeight: 600 }}>
-            <span>✨</span> Private event photo sharing
+            <span>✨</span> Event memory collection platform
           </div>
 
-          <h1 style={{ fontWeight: 800, fontSize: "clamp(2.4rem, 5vw, 3.8rem)", lineHeight: 1.15, color: "#1a1a1a" }}>
+          <h1 style={{ fontWeight: 800, fontSize: "clamp(2.25rem, 5vw, 3.35rem)", lineHeight: 1.15, color: "#1a1a1a" }}>
             All Your Event Memories,{" "}
             <span style={{ color: "#556B2F" }}>Together in One Place</span>
           </h1>
 
           <p className="self-center md:self-start" style={{ fontWeight: 400, fontSize: "1.1rem", lineHeight: 1.7, color: "#555", maxWidth: "480px" }}>
-            Momento App makes it easy for hosts and guests to instantly capture, share, and relive photos and videos from every special event — privately and effortlessly.
+            Momento App makes it easy for hosts and guests to instantly capture, share, and relive memorable photos and videos from every special event — privately and effortlessly.
+          </p>
+          <p style={{ fontWeight: 600, fontSize: "0.8rem", lineHeight: 1.7, color: "#555", maxWidth: "480px" }}>
+            No App Downloads • Guests Join via QR or Link • No Chasing People Afterward
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 items-center md:items-start">
@@ -83,7 +86,7 @@ export function HeroSection() {
               ))}
             </div>
             <p style={{ fontSize: "0.85rem", color: "#666" }}>
-              <strong style={{ color: "#556B2F" }}>10,000+</strong> events captured
+              <strong style={{ color: "#556B2F" }}>500+</strong> events captured
             </p>
           </div>
         </motion.div>
