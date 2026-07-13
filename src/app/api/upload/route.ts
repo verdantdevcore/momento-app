@@ -2,6 +2,7 @@ import { v2 as cloudinary } from 'cloudinary'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
+import { getFeedStatus } from '@/lib/utils'
 import {
   isOriginAllowed,
   saveRatelimit,
@@ -71,6 +72,16 @@ export async function POST(request: NextRequest) {
 
     if (!UUID_RE.test(eventId)) {
       return NextResponse.json({ error: 'Invalid eventId' }, { status: 400 })
+    }
+
+    const { data: eventRow } = await adminClient
+      .from('events')
+      .select('feed_opens_at, feed_closes_at')
+      .eq('id', eventId)
+      .single()
+
+    if (!eventRow || getFeedStatus(eventRow) !== 'open') {
+      return NextResponse.json({ error: 'This event is not currently accepting uploads.' }, { status: 403 })
     }
 
     // Only ever trust Cloudinary URLs — this endpoint must not become a

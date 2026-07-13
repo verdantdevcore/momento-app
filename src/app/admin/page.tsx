@@ -61,8 +61,9 @@ type Section = 'overview' | 'hosts' | 'events' | 'auditlogs'
 
 const categoryEmojis: Record<string, string> = {
   Wedding: '💍', Birthday: '🎂', Anniversary: '🥂', Engagement: '💌',
-  Graduation: '🎓', 'Baby Shower': '🍼', Corporate: '💼', Conference: '🎤',
-  Concert: '🎵', Festival: '🎊', Reunion: '🤝', Other: '📌',
+  Graduation: '🎓', 'Baby Shower': '🍼', 'Bridal Shower': '👰', Corporate: '💼', Conference: '🎤',
+  Concert: '🎵', Festival: '🎊', Reunion: '🤝', Outreach: '📣', Sports: '⚽',
+  'Games Night': '🎮', Vacation: '🏖️', Other: '📌',
 }
 
 const auditIcons: Record<string, string> = {

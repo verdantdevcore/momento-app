@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { sendNewHostSignupNotice } from '@/lib/email'
+import { scheduleOnboardingChecks } from '@/lib/qstash'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -48,6 +50,25 @@ export async function GET(request: NextRequest) {
   // Password reset — keep session, go to reset page
   if (type === 'recovery') {
     return NextResponse.redirect(`${origin}/auth/reset-password`)
+  }
+
+  // Email confirmed for the first time — kick off onboarding: notify the
+  // onboarding team and schedule the 24h/72h/7d "no event yet" reminder sequence.
+  // Best-effort: a Resend/QStash hiccup must never block the host from
+  // completing signup, so failures here are logged, not thrown.
+  if (type === 'signup') {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.email) {
+        const fullName = (user.user_metadata?.full_name as string | undefined) ?? null
+        await Promise.all([
+          sendNewHostSignupNotice({ email: user.email, fullName }),
+          scheduleOnboardingChecks(user.id),
+        ])
+      }
+    } catch (err) {
+      console.error('[auth/callback] onboarding side-effects failed:', err)
+    }
   }
 
   // Email confirmed — redirect to login with success flag

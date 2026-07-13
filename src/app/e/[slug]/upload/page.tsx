@@ -8,11 +8,14 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
+import { getFeedStatus } from '@/lib/utils'
 
 type Event = {
   id: string
   title: string
   slug: string
+  feed_opens_at: string | null
+  feed_closes_at: string | null
 }
 
 export default function UploadPage() {
@@ -40,7 +43,7 @@ export default function UploadPage() {
     async function fetchEvent() {
       const { data } = await supabase
         .from('events')
-        .select('id, title, slug')
+        .select('id, title, slug, feed_opens_at, feed_closes_at')
         .eq('slug', slug)
         .single()
       if (!data) return router.push('/')
@@ -209,6 +212,19 @@ async function handleUpload() {
       <div style={{ width: '32px', height: '32px', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading event...</p>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </main>
+  )
+
+  const feedStatus = getFeedStatus(event)
+  if (feedStatus !== 'open') return (
+    <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', padding: '2rem', textAlign: 'center' }}>
+      <span style={{ fontSize: '2.5rem' }}>{feedStatus === 'closed' ? '🔒' : '⏳'}</span>
+      <h2 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '1.125rem' }}>{event.title}</h2>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem', margin: 0, maxWidth: '24rem' }}>
+        {feedStatus === 'closed'
+          ? 'This event has been closed by the host. Uploads are no longer accepted.'
+          : "This event's feed hasn't opened yet. Check back soon."}
+      </p>
     </main>
   )
 

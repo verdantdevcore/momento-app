@@ -2,11 +2,11 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { generateSlug, formatEventDate } from '@/lib/utils'
+import { generateSlug, formatEventDate, computeFeedClosesAt, FEED_CLOSE_OPTIONS, type FeedCloseMode } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { LoadingBar } from '@/components/ui/LoadingBar'
@@ -23,20 +23,48 @@ type Event = {
   event_time: string | null
   category: string | null
   created_at: string
+  feed_opens_at: string | null
+  feed_close_mode: FeedCloseMode
+  feed_closes_at: string | null
 }
 
 const EVENT_CATEGORIES = [
   'Wedding', 'Birthday', 'Anniversary', 'Engagement',
-  'Graduation', 'Baby Shower', 'Corporate', 'Conference',
-  'Concert', 'Festival', 'Reunion', 'Other'
+  'Graduation', 'Baby Shower', 'Bridal Shower', 'Corporate', 'Conference',
+  'Concert', 'Festival', 'Reunion', 'Outreach', 'Sports', 'Games Night',
+  'Vacation', 'Other'
 ]
 
 
 const categoryEmojis: Record<string, string> = {
   Wedding: '💍', Birthday: '🎂', Anniversary: '🥂', Engagement: '💌',
-  Graduation: '🎓', 'Baby Shower': '🍼', Corporate: '💼', Conference: '🎤',
-  Concert: '🎵', Festival: '🎊', Reunion: '🤝', Other: '📌',
+  Graduation: '🎓', 'Baby Shower': '🍼', 'Bridal Shower': '👰', Corporate: '💼', Conference: '🎤',
+  Concert: '🎵', Festival: '🎊', Reunion: '🤝', Outreach: '📣', Sports: '⚽',
+  'Games Night': '🎮', Vacation: '🏖️', Other: '📌',
 }
+
+// Each step optionally anchors to a real element (via the `target` key,
+// resolved to a ref in the component) and can require the create-form to
+// be open before it's shown, so the tour walks the actual UI instead of
+// floating disconnected from it.
+// Positions the tour tooltip just below its target, or above if there's
+// more room that way. Horizontally centered under the target's viewport
+// center to keep the math simple and avoid edge overflow.
+function tourTooltipPosition(rect: DOMRect): React.CSSProperties {
+  const margin = 14
+  const spaceBelow = window.innerHeight - rect.bottom
+  const placeBelow = spaceBelow > 260 || rect.top < 260
+  return placeBelow
+    ? { top: rect.bottom + margin, left: '50%', transform: 'translateX(-50%)' }
+    : { bottom: window.innerHeight - rect.top + margin, left: '50%', transform: 'translateX(-50%)' }
+}
+
+const TOUR_STEPS = [
+  { icon: '👋', title: 'Welcome to Momento', body: "Let's get your first event set up so guests can start sharing photos and videos in minutes.", target: null as null | 'newEvent' | 'category' | 'create', needsForm: false },
+  { icon: '➕', title: 'Create your first event', body: 'Tap this button to start a new event.', target: 'newEvent' as const, needsForm: false },
+  { icon: '🏷️', title: 'Give it a title & category', body: 'A clear title and category help guests recognize the event — and unlock the matching icon.', target: 'category' as const, needsForm: true },
+  { icon: '✅', title: "You're ready", body: 'Hit "Create event" to publish it and get your shareable link and QR code.', target: 'create' as const, needsForm: true },
+]
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -49,6 +77,9 @@ export default function DashboardPage() {
   const [eventDate, setEventDate] = useState('')
   const [eventTime, setEventTime] = useState('')
   const [category, setCategory] = useState('')
+  const [feedOpensAt, setFeedOpensAt] = useState('')
+  const [feedCloseMode, setFeedCloseMode] = useState<FeedCloseMode>('none')
+  const [feedClosesAtCustom, setFeedClosesAtCustom] = useState('')
   const [loading, setLoading] = useState(false)
   const [createError, setCreateError] = useState('')
   const [pageLoading, setPageLoading] = useState(true)
@@ -59,15 +90,60 @@ export default function DashboardPage() {
   const [showCategoryPanel, setShowCategoryPanel] = useState(false)
   const { isMobile } = useWindowWidth()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [hostId, setHostId] = useState<string | null>(null)
+  const [showTour, setShowTour] = useState(false)
+  const [tourStep, setTourStep] = useState(0)
+  const [tourTargetRect, setTourTargetRect] = useState<DOMRect | null>(null)
+  const newEventBtnRef = useRef<HTMLButtonElement>(null)
+  const categoryFieldRef = useRef<HTMLDivElement>(null)
+  const createBtnRef = useRef<HTMLButtonElement>(null)
+
+  // Keeps the tour's spotlight glued to the real element for the current
+  // step, re-measuring on resize/scroll and after the create-form mounts.
+  useEffect(() => {
+    if (!showTour) return
+    const targetRefs = { newEvent: newEventBtnRef, category: categoryFieldRef, create: createBtnRef }
+    const target = TOUR_STEPS[tourStep].target
+
+    function measure() {
+      const ref = target ? targetRefs[target] : null
+      const el = ref?.current
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        setTourTargetRect(el.getBoundingClientRect())
+      } else {
+        setTourTargetRect(null)
+      }
+    }
+
+    measure()
+    const settleTimer = setTimeout(measure, 300) // after scroll/layout settles
+    window.addEventListener('resize', measure)
+    window.addEventListener('scroll', measure, true)
+    return () => {
+      clearTimeout(settleTimer)
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('scroll', measure, true)
+    }
+  }, [showTour, tourStep, showForm])
+
+  function advanceTour() {
+    const next = TOUR_STEPS[tourStep + 1]
+    if (!next) { dismissTour(); return }
+    if (next.needsForm) setShowForm(true)
+    setTourStep(s => s + 1)
+  }
 
   useEffect(() => {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/auth/login'); return }
       const user = session.user
+      setHostId(user.id)
 
-      const { data: host } = await supabase.from('hosts').select('is_super_admin').eq('id', user.id).single()
+      const { data: host } = await supabase.from('hosts').select('is_super_admin, has_seen_onboarding_tour').eq('id', user.id).single()
       if (host?.is_super_admin) setIsAdmin(true)
+      if (host && !host.has_seen_onboarding_tour) setShowTour(true)
 
       const { data: eventsData } = await supabase.from('events').select('*').eq('host_id', user.id).order('created_at', { ascending: false })
       if (eventsData) setEvents(eventsData)
@@ -91,9 +167,16 @@ export default function DashboardPage() {
     return () => subscription.unsubscribe()
   }, [router, supabase])
 
+  async function dismissTour() {
+    setShowTour(false)
+    setTourStep(0)
+    if (hostId) await supabase.from('hosts').update({ has_seen_onboarding_tour: true }).eq('id', hostId)
+  }
+
   function resetForm() {
     setTitle(''); setDescription(''); setLocation('')
     setEventDate(''); setEventTime(''); setCategory('')
+    setFeedOpensAt(''); setFeedCloseMode('none'); setFeedClosesAtCustom('')
     setCreateError('')
     setShowForm(false)
   }
@@ -105,13 +188,21 @@ export default function DashboardPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setLoading(false); return }
     const slug = generateSlug(title)
+    const feedClosesAt = computeFeedClosesAt(eventDate || null, eventTime || null, feedCloseMode, feedClosesAtCustom || null)
     const { data, error } = await supabase
       .from('events')
-      .insert({ host_id: session.user.id, title, description, location: location || null, event_date: eventDate || null, event_time: eventTime || null, category: category || null, slug })
+      .insert({
+        host_id: session.user.id, title, description, location: location || null,
+        event_date: eventDate || null, event_time: eventTime || null, category: category || null, slug,
+        feed_opens_at: feedOpensAt ? new Date(feedOpensAt).toISOString() : null,
+        feed_close_mode: feedCloseMode,
+        feed_closes_at: feedClosesAt,
+      })
       .select().single()
     if (!error && data) {
       setEvents(prev => [data, ...prev])
       resetForm()
+      if (showTour) await dismissTour()
       router.push(`/dashboard/${data.id}`)
     } else if (error) {
       setCreateError(error.message)
@@ -154,7 +245,7 @@ export default function DashboardPage() {
           <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Event title *</label>
           <input type="text" placeholder="Enter event title" value={title} onChange={e => setTitle(e.target.value)} style={input} />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <div ref={categoryFieldRef} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Category</label>
           <select value={category} onChange={e => setCategory(e.target.value)} style={{ ...input, appearance: 'none' as React.CSSProperties['appearance'] }}>
             <option value="">Select...</option>
@@ -179,11 +270,31 @@ export default function DashboardPage() {
           <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Description</label>
           <textarea placeholder="Tell guests what to expect..." value={description} onChange={e => setDescription(e.target.value)} rows={3} style={{ ...input, minHeight: 'unset', resize: 'none' }} />
         </div>
+
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Feed visibility</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Open feed at (optional — leave blank to open immediately)</label>
+            <input type="datetime-local" value={feedOpensAt} onChange={e => setFeedOpensAt(e.target.value)} style={{ ...input, colorScheme: 'dark', cursor: 'pointer' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Close feed</label>
+            <select value={feedCloseMode} onChange={e => setFeedCloseMode(e.target.value as FeedCloseMode)} style={{ ...input, appearance: 'none' as React.CSSProperties['appearance'] }}>
+              {FEED_CLOSE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          {feedCloseMode === 'custom' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Close date & time</label>
+              <input type="datetime-local" value={feedClosesAtCustom} onChange={e => setFeedClosesAtCustom(e.target.value)} style={{ ...input, colorScheme: 'dark', cursor: 'pointer' }} />
+            </div>
+          )}
+        </div>
         {createError && (
           <p style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: '0.5rem', padding: '0.625rem 0.875rem', fontSize: '0.825rem', border: '1px solid rgba(239,68,68,0.2)', margin: 0 }}>{createError}</p>
         )}
         <div style={{ display: 'flex', gap: '0.625rem', paddingTop: '0.25rem' }}>
-          <button onClick={createEvent} disabled={loading || !title.trim()} style={{ flex: 1, backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '1rem', minHeight: '52px', opacity: loading || !title.trim() ? 0.4 : 1 }}>
+          <button ref={createBtnRef} onClick={createEvent} disabled={loading || !title.trim()} style={{ flex: 1, backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '1rem', minHeight: '52px', opacity: loading || !title.trim() ? 0.4 : 1 }}>
             {loading
               ? <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><span style={{ width: '16px', height: '16px', border: '2px solid rgba(247,231,206,0.3)', borderTopColor: '#F7E7CE', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Creating...</span>
               : 'Create event'
@@ -354,7 +465,7 @@ export default function DashboardPage() {
                 {filteredEvents.length} {activeCategory !== 'All' ? activeCategory : ''} event{filteredEvents.length !== 1 ? 's' : ''}
               </p>
               {!showForm && (
-                <button onClick={() => setShowForm(true)} style={{ height: '36px', paddingLeft: '1rem', paddingRight: '1rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.625rem', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <button ref={newEventBtnRef} onClick={() => setShowForm(true)} style={{ height: '36px', paddingLeft: '1rem', paddingRight: '1rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.625rem', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                   + New event
                 </button>
               )}
@@ -401,6 +512,58 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {showTour && (
+        <>
+          {/* Spotlight — a transparent cutout over the real target element, or a
+              full dim overlay for the centered welcome step. */}
+          {tourTargetRect ? (
+            <div style={{
+              position: 'fixed',
+              top: tourTargetRect.top - 8, left: tourTargetRect.left - 8,
+              width: tourTargetRect.width + 16, height: tourTargetRect.height + 16,
+              borderRadius: '0.875rem', border: '2px solid var(--accent)',
+              boxShadow: '0 0 0 9999px rgba(0,0,0,0.7)',
+              zIndex: 55, pointerEvents: 'none',
+              transition: 'top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease',
+            }} />
+          ) : (
+            <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 55 }} />
+          )}
+
+          <div style={{
+            position: 'fixed', zIndex: 56,
+            backgroundColor: 'var(--bg-base)', borderRadius: '1.25rem', padding: '1.5rem',
+            width: 'min(22rem, calc(100vw - 2rem))', border: '1px solid var(--border)',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.25)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center',
+            ...(tourTargetRect ? tourTooltipPosition(tourTargetRect) : { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }),
+          }}>
+            <span style={{ fontSize: '2.25rem' }}>{TOUR_STEPS[tourStep].icon}</span>
+            <div>
+              <h3 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '1.125rem' }}>{TOUR_STEPS[tourStep].title}</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem', lineHeight: 1.6 }}>{TOUR_STEPS[tourStep].body}</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.375rem' }}>
+              {TOUR_STEPS.map((_, i) => (
+                <div key={i} style={{ width: i === tourStep ? '16px' : '6px', height: '6px', borderRadius: '999px', backgroundColor: i === tourStep ? 'var(--accent)' : 'var(--border)', transition: 'all 0.2s ease' }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '0.625rem', width: '100%' }}>
+              <button onClick={dismissTour} style={{ padding: '0.875rem 1rem', border: '1px solid var(--border)', borderRadius: '0.75rem', color: 'var(--text-muted)', background: 'none', cursor: 'pointer', fontSize: '0.925rem', fontWeight: 600 }}>
+                Skip
+              </button>
+              <button
+                onClick={advanceTour}
+                style={{ flex: 1, backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: '0.925rem' }}
+              >
+                {tourStep < TOUR_STEPS.length - 1 ? 'Next' : 'Got it'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       <Footer />
     </main>
   )
