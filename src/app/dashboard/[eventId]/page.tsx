@@ -9,7 +9,7 @@ import Image from 'next/image'
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react'
 import JSZip from 'jszip'
 import { createClient } from '@/lib/supabase/client'
-import { formatTimeAgo } from '@/lib/utils'
+import { formatTimeAgo, formatEventDate, computeFeedClosesAt, FEED_CLOSE_OPTIONS, type FeedCloseMode } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { GreenLogo } from '@/components/landing/Logo'
 
@@ -88,8 +88,9 @@ function ErrorToast({ message, onClose }: { message: string | null; onClose: () 
 
 const EVENT_CATEGORIES = [
   'Wedding', 'Birthday', 'Anniversary', 'Engagement',
-  'Graduation', 'Baby Shower', 'Corporate', 'Conference',
-  'Concert', 'Festival', 'Reunion', 'Other'
+  'Graduation', 'Baby Shower', 'Bridal Shower', 'Corporate', 'Conference',
+  'Concert', 'Festival', 'Reunion', 'Outreach', 'Sports', 'Games Night',
+  'Vacation', 'Other'
 ]
 
 type Event = {
@@ -102,6 +103,17 @@ type Event = {
   event_time: string | null
   category: string | null
   created_at: string
+  feed_opens_at: string | null
+  feed_close_mode: FeedCloseMode
+  feed_closes_at: string | null
+}
+
+// Converts an ISO timestamp to the value a <input type="datetime-local"> expects (local time, no offset).
+function toDatetimeLocal(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 type Media = {
@@ -153,6 +165,9 @@ export default function EventDashboardPage() {
   const [editDate, setEditDate] = useState('')
   const [editTime, setEditTime] = useState('')
   const [editCategory, setEditCategory] = useState('')
+  const [editFeedOpensAt, setEditFeedOpensAt] = useState('')
+  const [editFeedCloseMode, setEditFeedCloseMode] = useState<FeedCloseMode>('none')
+  const [editFeedClosesAtCustom, setEditFeedClosesAtCustom] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null)
   const [confirmModal, setConfirmModal] = useState<ConfirmState>(null)
@@ -220,11 +235,15 @@ export default function EventDashboardPage() {
     setEditDate(event.event_date ?? '')
     setEditTime(event.event_time ?? '')
     setEditCategory(event.category ?? '')
+    setEditFeedOpensAt(toDatetimeLocal(event.feed_opens_at))
+    setEditFeedCloseMode(event.feed_close_mode ?? 'none')
+    setEditFeedClosesAtCustom(event.feed_close_mode === 'custom' ? toDatetimeLocal(event.feed_closes_at) : '')
     setEditing(true)
   }
 
   async function handleSaveEdit() {
     if (!editTitle.trim() || !event) return
+    const feedClosesAt = computeFeedClosesAt(editDate || null, editTime || null, editFeedCloseMode, editFeedClosesAtCustom || null)
     const { data, error } = await supabase
       .from('events')
       .update({
@@ -233,6 +252,9 @@ export default function EventDashboardPage() {
         event_date: editDate || null,
         event_time: editTime || null,
         category: editCategory || null,
+        feed_opens_at: editFeedOpensAt ? new Date(editFeedOpensAt).toISOString() : null,
+        feed_close_mode: editFeedCloseMode,
+        feed_closes_at: feedClosesAt,
       })
       .eq('id', event.id).select().single()
     if (!error && data) { setEvent(data); setEditing(false) }
@@ -320,7 +342,7 @@ export default function EventDashboardPage() {
             )}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.125rem' }}>
-            {event.event_date && <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, whiteSpace: 'nowrap' }}>📅 {new Date(event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}
+            {event.event_date && <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, whiteSpace: 'nowrap' }}>📅 {formatEventDate(event.event_date)}</p>}
             {event.event_time && <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, whiteSpace: 'nowrap' }}>🕐 {event.event_time}</p>}
             {event.location && <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📍 {event.location}</p>}
           </div>
@@ -424,6 +446,26 @@ export default function EventDashboardPage() {
                   style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer', paddingLeft: '0.75rem', paddingRight: '0.25rem', paddingTop: '0.875rem', paddingBottom: '0.875rem' }}
                 />
               </div>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Feed visibility</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Open feed at (optional — leave blank to open immediately)</label>
+                <input type="datetime-local" value={editFeedOpensAt} onChange={e => setEditFeedOpensAt(e.target.value)} style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Close feed</label>
+                <select value={editFeedCloseMode} onChange={e => setEditFeedCloseMode(e.target.value as FeedCloseMode)} style={{ ...inputStyle, appearance: 'none' as React.CSSProperties['appearance'] }}>
+                  {FEED_CLOSE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              {editFeedCloseMode === 'custom' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Close date & time</label>
+                  <input type="datetime-local" value={editFeedClosesAtCustom} onChange={e => setEditFeedClosesAtCustom(e.target.value)} style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }} />
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '0.625rem' }}>

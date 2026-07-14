@@ -7,8 +7,9 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { formatTimeAgo } from '@/lib/utils'
+import { formatTimeAgo, formatEventDate, getFeedStatus, countdownParts } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { Footer } from '@/components/ui/Footer'
 import { OliveLogo } from '@/components/landing/Logo'
 
 type Event = {
@@ -19,6 +20,8 @@ type Event = {
   location: string | null
   event_date: string | null
   event_time: string | null
+  feed_opens_at: string | null
+  feed_closes_at: string | null
 }
 
 type Media = {
@@ -30,6 +33,15 @@ type Media = {
   views: number
   created_at: string
   batch_id: string | null
+}
+
+function mediaCountLabel(items: Media[]): string {
+  const count = items.length
+  const hasPhoto = items.some(m => m.type === 'image')
+  const hasVideo = items.some(m => m.type === 'video')
+  if (hasPhoto && hasVideo) return `${count} ${count === 1 ? 'item' : 'items'}`
+  if (hasVideo) return `${count} ${count === 1 ? 'video' : 'videos'}`
+  return `${count} ${count === 1 ? 'photo' : 'photos'}`
 }
 
 type FeedCard = {
@@ -70,7 +82,7 @@ export default function EventFeedPage() {
     async function fetchData() {
       const { data: eventData } = await supabase
         .from('events')
-        .select('id, title, slug, description, location, event_date, event_time')
+        .select('id, title, slug, description, location, event_date, event_time, feed_opens_at, feed_closes_at')
         .eq('slug', slug)
         .single()
 
@@ -99,6 +111,19 @@ export default function EventFeedPage() {
     window.addEventListener('resize', recalcHeight)
     return () => window.removeEventListener('resize', recalcHeight)
   }, [media])
+
+  // Ticks once a second while the feed hasn't opened yet, to drive the
+  // countdown. Self-clears once feed_opens_at has passed.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const opensAt = event?.feed_opens_at ? new Date(event.feed_opens_at).getTime() : null
+    if (!opensAt || opensAt <= Date.now()) return
+    const id = setInterval(() => {
+      setNow(Date.now())
+      if (opensAt <= Date.now()) clearInterval(id)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [event])
 
   // Group media into feed cards — batched uploads become carousels
   function buildFeedCards(items: Media[]): FeedCard[] {
@@ -181,7 +206,7 @@ export default function EventFeedPage() {
     setRefreshing(true)
     const { data: eventData } = await supabase
       .from('events')
-      .select('id, title, slug, description, location, event_date, event_time')
+      .select('id, title, slug, description, location, event_date, event_time, feed_opens_at, feed_closes_at')
       .eq('slug', slug)
       .single()
     if (eventData) {
@@ -230,6 +255,56 @@ export default function EventFeedPage() {
     </main>
   )
 
+  const feedStatus = getFeedStatus(event)
+  if (feedStatus !== 'open') {
+    const opensInMs = event.feed_opens_at ? new Date(event.feed_opens_at).getTime() - now : 0
+    return (
+      <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
+        <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.875rem 1rem', display: 'flex', justifyContent: 'center' }}>
+          <OliveLogo size={22} />
+        </header>
+
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', padding: '2rem', textAlign: 'center' }}>
+          <span style={{ fontSize: '2.5rem' }}>{feedStatus === 'closed' ? '🔒' : '⏳'}</span>
+          <h2 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '1.125rem' }}>{event.title}</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem', margin: 0, maxWidth: '24rem' }}>
+            {feedStatus === 'closed'
+              ? 'This event has been closed by the host. Uploads and viewing are no longer available.'
+              : "This event's feed hasn't opened yet."}
+          </p>
+
+          {feedStatus === 'not_open' && event.feed_opens_at && (
+            <div style={{ display: 'flex', gap: '0.625rem', marginTop: '0.5rem' }}>
+              {countdownParts(opensInMs).map(part => (
+                <div key={part.label} style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.625rem 0.875rem', minWidth: '3.5rem' }}>
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1.375rem', fontWeight: 800, margin: 0, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                    {String(part.value).padStart(2, '0')}
+                  </p>
+                  <p style={{ color: 'var(--text-dim)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0.25rem 0 0' }}>
+                    {part.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {feedStatus === 'closed' && (
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ marginTop: '0.5rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', padding: '0.875rem 1.5rem', fontWeight: 600, fontSize: '0.925rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+            >
+              Create your own event →
+            </a>
+          )}
+        </div>
+
+        <Footer variant="minimal" />
+      </main>
+    )
+  }
+
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%', position: 'relative' }}>
   
@@ -242,16 +317,21 @@ export default function EventFeedPage() {
         ref={headerRef}
         style={{ backgroundColor: 'var(--bg-surface)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', padding: '0.625rem 1rem', position: 'sticky', top: 0, zIndex: 10 }}
       >
+        {/* Logo row — mobile & tablet only, own row above the event info */}
+        <div className="flex lg:hidden" style={{ justifyContent: 'center', marginBottom: '0.5rem' }}>
+          <OliveLogo size={20} />
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
           {/* Event info — left */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Row 1: title + photo count */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.925rem' }}>
+            {/* Row 1: title + media count */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+              <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.925rem', lineHeight: 1.3 }}>
                 {event.title}
               </p>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {media.length} {media.length === 1 ? 'photo' : 'photos'}
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1.3 }}>
+                {mediaCountLabel(media)}
               </span>
             </div>
             {/* Row 2: description · date · time · location */}
@@ -263,7 +343,7 @@ export default function EventFeedPage() {
               )}
               {event.event_date && (
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
-                  📅 {new Date(event.event_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                  📅 {formatEventDate(event.event_date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
                   {event.event_time && ` · ${event.event_time}`}
                 </span>
               )}
@@ -275,19 +355,18 @@ export default function EventFeedPage() {
             </div>
           </div>
 
-          {/* Logo — desktop only, centered */}
-          <div style={{
+          {/* Logo — desktop only, centered inline with the header row */}
+          <div className="hidden lg:flex" style={{
             position: 'absolute',
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)',
             pointerEvents: 'none',
-            display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <div className="hidden md:block">
-              <OliveLogo size={26} />
+            <div>
+              <OliveLogo size={20} />
             </div>
           </div>
 

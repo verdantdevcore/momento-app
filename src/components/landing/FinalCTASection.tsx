@@ -18,7 +18,7 @@ export function FinalCTASection() {
             </motion.p>
             <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}
               style={{ fontSize: "1.05rem", color: "rgba(247,231,206,0.82)", maxWidth: "480px", margin: "0 auto 2.5rem", lineHeight: 1.7 }}>
-              From weddings to birthdays to corporate events, Momento App brings every guest&apos;s photos and videos into one private shared album everyone can enjoy.
+              From weddings to birthdays to corporate events, Momento App makes event memory collection effortless — bringing every guest&apos;s photos and videos into one private shared album everyone can enjoy.
             </motion.p>
             <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }}>
               <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
@@ -40,7 +40,7 @@ export function FinalCTASection() {
             </motion.div>
             <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.5 }}
               className="mt-6" style={{ fontSize: "0.82rem", color: "rgba(247,231,206,0.55)" }}>
-              No credit card required · Private by default · Set up in under 60 seconds
+              No app downloads required · Private by default · Set up in under 60 seconds
             </motion.p>
           </div>
         </motion.div>

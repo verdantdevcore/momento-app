@@ -8,11 +8,14 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
+import { getFeedStatus } from '@/lib/utils'
 
 type Event = {
   id: string
   title: string
   slug: string
+  feed_opens_at: string | null
+  feed_closes_at: string | null
 }
 
 export default function UploadPage() {
@@ -40,7 +43,7 @@ export default function UploadPage() {
     async function fetchEvent() {
       const { data } = await supabase
         .from('events')
-        .select('id, title, slug')
+        .select('id, title, slug, feed_opens_at, feed_closes_at')
         .eq('slug', slug)
         .single()
       if (!data) return router.push('/')
@@ -126,21 +129,61 @@ async function handleUpload() {
         const file = files[i]
         setProgress({ current: i + 1, total: files.length })
 
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('eventId', event.id)
-        if (guestName)   formData.append('uploadedBy', guestName)
-        if (batchId)     formData.append('batchId', batchId)
-        formData.append('hashtags', JSON.stringify(parsedTags))
+        // Step 1: ask our server for a short-lived signed upload for this
+        // file. This request is tiny (no file bytes) regardless of the
+        // file size.
+        const sigResponse = await fetch('/api/upload-signature', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId: event.id,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          }),
+        })
+        const sig = await sigResponse.json()
+        if (!sigResponse.ok || sig.error) throw new Error(sig.error ?? 'Upload failed')
 
+        // Step 2: upload the file bytes directly from the browser to
+        // Cloudinary. This bypasses our server entirely, so large files
+        // (mainly videos) are no longer constrained by our serverless
+        // function's request-body size limit.
+        const cdForm = new FormData()
+        cdForm.append('file', file)
+        cdForm.append('api_key', sig.apiKey)
+        cdForm.append('timestamp', String(sig.timestamp))
+        cdForm.append('signature', sig.signature)
+        cdForm.append('folder', sig.folder)
+        if (sig.format) cdForm.append('format', sig.format)
+
+        const cdResponse = await fetch(
+          `https://api.cloudinary.com/v1_1/${sig.cloudName}/${sig.resourceType}/upload`,
+          { method: 'POST', body: cdForm }
+        )
+        const cdResult = await cdResponse.json()
+        if (!cdResponse.ok || cdResult.error) {
+          throw new Error(cdResult.error?.message ?? 'Upload to storage failed. Please try again.')
+        }
+
+        // Step 3: tell our server the upload succeeded so it can save the
+        // media record. This is another small JSON request.
         const response = await fetch('/api/upload', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId: event.id,
+            url: cdResult.secure_url,
+            publicId: cdResult.public_id,
+            resourceType: sig.resourceType,
+            uploadedBy: guestName,
+            batchId,
+            hashtags: parsedTags,
+          }),
         })
 
         const data = await response.json()
         if (!response.ok || data.error) throw new Error(data.error ?? 'Upload failed')
-        // Server now handles the Supabase insert — no client-side DB call needed
       }
       setDone(true)
     } catch (err: any) {
@@ -172,6 +215,19 @@ async function handleUpload() {
     </main>
   )
 
+  const feedStatus = getFeedStatus(event)
+  if (feedStatus !== 'open') return (
+    <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', padding: '2rem', textAlign: 'center' }}>
+      <span style={{ fontSize: '2.5rem' }}>{feedStatus === 'closed' ? '🔒' : '⏳'}</span>
+      <h2 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '1.125rem' }}>{event.title}</h2>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem', margin: 0, maxWidth: '24rem' }}>
+        {feedStatus === 'closed'
+          ? 'This event has been closed by the host. Uploads are no longer accepted.'
+          : "This event's feed hasn't opened yet. Check back soon."}
+      </p>
+    </main>
+  )
+
   if (done) return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', gap: '1rem', textAlign: 'center' }}>
       <p style={{ fontSize: '3rem' }}>🎉</p>
@@ -192,6 +248,14 @@ async function handleUpload() {
         >
           View the feed
         </Link>
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, textDecoration: 'none', padding: '0.5rem' }}
+        >
+          Create your own event →
+        </a>
       </div>
     </main>
   )
@@ -349,6 +413,15 @@ async function handleUpload() {
           >
             {uploading ? `Uploading ${progress?.current} of ${progress?.total}...` : 'Upload'}
           </button>
+
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, textDecoration: 'none', padding: '0.25rem' }}
+          >
+            Create your own event →
+          </a>
 
         </div>
       </div>

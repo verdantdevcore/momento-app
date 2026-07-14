@@ -7,7 +7,7 @@ import { ChevronDown } from "lucide-react";
 const FAQS = [
   {
     q: "What is Momento App?",
-    a: "Momento App is a private event photo-sharing app that lets hosts and guests capture, upload, and relive memories together in one shared space.",
+    a: "Momento App makes it easy for hosts and guests to instantly capture, share, and relive memorable photos and videos from every special event — privately and effortlessly.",
   },
   {
     q: "How does Momento App work?",
@@ -23,7 +23,7 @@ const FAQS = [
   },
   {
     q: "Do guests need to create an account?",
-    a: "No complicated setup required. Guests can join an event and start sharing memories in seconds.",
+    a: "No complicated setup or app download required. Guests can join an event and start sharing memories in seconds.",
   },
   {
     q: "Is Momento App private?",

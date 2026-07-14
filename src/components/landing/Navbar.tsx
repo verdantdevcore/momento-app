@@ -5,25 +5,28 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { GreenLogo, FooterLogo } from "./Logo";
+import { createClient } from "@/lib/supabase/client";
 
 const links = [
-  { label: "Features", hash: "#features" },
   { label: "How It Works", hash: "#how-it-works" },
+  { label: "Features", hash: "#features" },
   { label: "FAQs", hash: "#faqs" },
 ];
 
 const facts = [
-  { stat: "10,000+", label: "Events captured" },
+  { stat: "500+", label: "Events captured" },
   { stat: "Private", label: "By default — no public sharing" },
   { stat: "60 sec", label: "Average setup time" },
   { stat: "Any device", label: "No app download required" },
   { stat: "All formats", label: "Photos & videos supported" },
 ];
 
-function XIcon() {
+function InstagramIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.857L1.254 2.25H8.08l4.263 5.634 5.9-5.634Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
     </svg>
   );
 }
@@ -38,12 +41,10 @@ function LinkedInIcon() {
   );
 }
 
-function InstagramIcon() {
+function XIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.857L1.254 2.25H8.08l4.263 5.634 5.9-5.634Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   );
 }
@@ -52,8 +53,20 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [factIndex, setFactIndex] = useState(0);
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsSignedIn(!!session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsSignedIn(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -115,20 +128,32 @@ export function Navbar() {
                 {link.label}
               </button>
             ))}
-            <Link
-              href="/auth/login"
-              style={{ fontWeight: 500, fontSize: "0.95rem", color: "#556B2F", textDecoration: "none" }}
-              className="transition-opacity hover:opacity-70"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/auth/register"
-              className="px-5 py-2 rounded-full transition-all hover:opacity-90 hover:scale-105"
-              style={{ fontWeight: 600, fontSize: "0.95rem", background: "#556B2F", color: "#F7E7CE", textDecoration: "none" }}
-            >
-              Get Started
-            </Link>
+            {isSignedIn ? (
+              <Link
+                href="/dashboard"
+                className="px-5 py-2 rounded-full transition-all hover:opacity-90 hover:scale-105"
+                style={{ fontWeight: 600, fontSize: "0.95rem", background: "#556B2F", color: "#F7E7CE", textDecoration: "none" }}
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  style={{ fontWeight: 500, fontSize: "0.95rem", color: "#556B2F", textDecoration: "none" }}
+                  className="transition-opacity hover:opacity-70"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="px-5 py-2 rounded-full transition-all hover:opacity-90 hover:scale-105"
+                  style={{ fontWeight: 600, fontSize: "0.95rem", background: "#556B2F", color: "#F7E7CE", textDecoration: "none" }}
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile hamburger */}
@@ -197,20 +222,32 @@ export function Navbar() {
           ))}
 
           <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-            <Link
-              href="/auth/register"
-              onClick={() => setMenuOpen(false)}
-              style={{ display: "block", textAlign: "center", padding: "0.875rem", borderRadius: "999px", background: "#556B2F", color: "#F7E7CE", fontWeight: 700, fontSize: "1rem", textDecoration: "none" }}
-            >
-              Get Started Free
-            </Link>
-            <Link
-              href="/auth/login"
-              onClick={() => setMenuOpen(false)}
-              style={{ display: "block", textAlign: "center", padding: "0.875rem", borderRadius: "999px", border: "1.5px solid #556B2F", color: "#556B2F", fontWeight: 600, fontSize: "1rem", textDecoration: "none" }}
-            >
-              Sign In
-            </Link>
+            {isSignedIn ? (
+              <Link
+                href="/dashboard"
+                onClick={() => setMenuOpen(false)}
+                style={{ display: "block", textAlign: "center", padding: "0.875rem", borderRadius: "999px", background: "#556B2F", color: "#F7E7CE", fontWeight: 700, fontSize: "1rem", textDecoration: "none" }}
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/register"
+                  onClick={() => setMenuOpen(false)}
+                  style={{ display: "block", textAlign: "center", padding: "0.875rem", borderRadius: "999px", background: "#556B2F", color: "#F7E7CE", fontWeight: 700, fontSize: "1rem", textDecoration: "none" }}
+                >
+                  Get Started Free
+                </Link>
+                <Link
+                  href="/auth/login"
+                  onClick={() => setMenuOpen(false)}
+                  style={{ display: "block", textAlign: "center", padding: "0.875rem", borderRadius: "999px", border: "1.5px solid #556B2F", color: "#556B2F", fontWeight: 600, fontSize: "1rem", textDecoration: "none" }}
+                >
+                  Sign In
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -265,9 +302,9 @@ export function Navbar() {
         <div style={{ padding: "1rem 1.5rem 0.75rem", display: "flex", alignItems: "center", gap: "0.625rem" }}>
           {[
            
+            { href: "https://instagram.com/sharemomentoapp", icon: <InstagramIcon />, label: "Instagram" },
             { href: "https://linkedin.com/company/share-momento", icon: <LinkedInIcon />, label: "LinkedIn" },
             { href: "https://x.com/sharemomentoapp", icon: <XIcon />, label: "X" },
-            { href: "https://instagram.com/sharemomentoapp", icon: <InstagramIcon />, label: "Instagram" },
           ].map(({ href, icon, label }) => (
             <a
               key={label}
@@ -288,8 +325,8 @@ export function Navbar() {
         <div style={{ padding: "0.75rem 1.5rem 1.5rem", borderTop: "1px solid rgba(85,107,47,0.08)", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
             {[
-              { label: "Privacy Policy", href: "/privacy" },
               { label: "Terms of Use", href: "/terms" },
+              { label: "Privacy Policy", href: "/privacy" },
               { label: "Security", href: "/security" },
             ].map(link => (
               <Link
