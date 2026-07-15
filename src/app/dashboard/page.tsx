@@ -256,15 +256,13 @@ export default function DashboardPage() {
           <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Location</label>
           <input type="text" placeholder="e.g. The Ritz Carlton, Toronto" value={location} onChange={e => setLocation(e.target.value)} style={input} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '0.625rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
-            <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Date</label>
-            <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} style={{ ...input, colorScheme: 'dark', cursor: 'pointer' }} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
-            <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Time</label>
-            <input type="time" value={eventTime} onChange={e => setEventTime(e.target.value)} style={{ ...input, colorScheme: 'dark', cursor: 'pointer' }} />
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Date</label>
+          <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} style={{ ...input, colorScheme: 'dark', cursor: 'pointer' }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Time</label>
+          <input type="time" value={eventTime} onChange={e => setEventTime(e.target.value)} style={{ ...input, colorScheme: 'dark', cursor: 'pointer' }} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Description</label>

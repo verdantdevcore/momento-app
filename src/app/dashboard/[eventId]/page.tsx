@@ -427,25 +427,23 @@ export default function EventDashboardPage() {
             <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Description" rows={3} style={{ ...inputStyle, minHeight: 'unset', resize: 'none' }} />
             <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Location" style={inputStyle} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '0.625rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
-                <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Date</label>
-                <input
-                  type="date"
-                  value={editDate}
-                  onChange={e => setEditDate(e.target.value)}
-                  style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
-                <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Time</label>
-                <input
-                  type="time"
-                  value={editTime}
-                  onChange={e => setEditTime(e.target.value)}
-                  style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }}
-                />
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Date</label>
+              <input
+                type="date"
+                value={editDate}
+                onChange={e => setEditDate(e.target.value)}
+                style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Time</label>
+              <input
+                type="time"
+                value={editTime}
+                onChange={e => setEditTime(e.target.value)}
+                style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }}
+              />
             </div>
 
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
