@@ -19,9 +19,11 @@ export async function scheduleOnboardingChecks(hostId: string) {
     return
   }
   const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/cron/onboarding-check`
-  await Promise.all(
+  const results = await Promise.all(
     (Object.keys(DELAY_SECONDS) as OnboardingCheckpoint[]).map(checkpoint =>
       qstash!.publishJSON({ url, body: { hostId, checkpoint }, delay: DELAY_SECONDS[checkpoint] })
+        .then(res => ({ checkpoint, messageId: res.messageId }))
     )
   )
+  console.log('[qstash] scheduled onboarding checks for', hostId, results)
 }

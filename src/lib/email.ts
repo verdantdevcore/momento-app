@@ -10,8 +10,9 @@ async function send(to: string, subject: string, html: string) {
     console.warn('[email] RESEND_API_KEY not set — skipping send:', { to, subject })
     return
   }
-  const { error } = await resend.emails.send({ from: FROM, to, subject, html })
+  const { data, error } = await resend.emails.send({ from: FROM, to, subject, html })
   if (error) console.error('[email] send failed:', { to, subject, error })
+  else console.log('[email] sent:', { to, subject, id: data?.id })
 }
 
 function wrapper(bodyHtml: string): string {
