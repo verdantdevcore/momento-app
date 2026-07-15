@@ -25,6 +25,7 @@ async function handler(request: Request) {
   if (!hostId || !checkpoint || !REMINDER_COLUMN[checkpoint]) {
     return NextResponse.json({ error: 'Missing or invalid hostId/checkpoint' }, { status: 400 })
   }
+  console.log('[onboarding-check] received', { hostId, checkpoint })
 
   const { data: existingEvent } = await adminClient
     .from('events')
@@ -34,6 +35,7 @@ async function handler(request: Request) {
     .maybeSingle()
 
   if (existingEvent) {
+    console.log('[onboarding-check] skipped — host already created an event', { hostId, checkpoint })
     return NextResponse.json({ skipped: 'host already created an event' })
   }
 
@@ -68,6 +70,7 @@ async function handler(request: Request) {
     }
   }
 
+  console.log('[onboarding-check] processed', { hostId, checkpoint })
   return NextResponse.json({ ok: true })
 }
 
