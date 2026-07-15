@@ -69,6 +69,16 @@ export const saveRatelimit = new Ratelimit({
   prefix: 'ratelimit:upload-save',
 })
 
+// Keyed by user id (not ip) since avatar uploads require an authenticated host.
+export const avatarRatelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(5, '10 m'),
+  analytics: false,
+  prefix: 'ratelimit:avatar-upload',
+})
+
+export const MAX_AVATAR_SIZE_MB = 8
+
 export function classifyFile(mimeTypeRaw: string, fileNameRaw: string) {
   const mimeType = mimeTypeRaw.toLowerCase()
   const fileName = fileNameRaw.toLowerCase()

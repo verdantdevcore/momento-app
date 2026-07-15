@@ -13,6 +13,10 @@ import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
 type AccountType = 'individual' | 'company'
 
+const MAX_AVATAR_SIZE_MB = 8
+const MAX_BIO_LENGTH = 300
+const PHONE_RE = /^[+]?[0-9\s\-().]{7,20}$/
+
 const COUNTRIES = [
   'Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia',
   'Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium',
@@ -59,6 +63,13 @@ export default function ProfilePage() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [companyName, setCompanyName] = useState('')
+  const [bio, setBio] = useState('')
+  const [phone, setPhone] = useState('')
+  const [phoneError, setPhoneError] = useState('')
+
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
 
   useEffect(() => {
     async function init() {
@@ -70,7 +81,7 @@ export default function ProfilePage() {
 
       const { data: host } = await supabase
         .from('hosts')
-        .select('first_name, last_name, company_name, account_type, country')
+        .select('first_name, last_name, company_name, account_type, country, bio, phone, avatar_url')
         .eq('id', user.id)
         .single()
 
@@ -80,6 +91,9 @@ export default function ProfilePage() {
         setCompanyName(host.company_name ?? '')
         setAccountType((host.account_type as AccountType) ?? 'individual')
         setCountry(host.country ?? '')
+        setBio(host.bio ?? '')
+        setPhone(host.phone ?? '')
+        setAvatarUrl(host.avatar_url ?? '')
       }
       setPageLoading(false)
     }
@@ -92,9 +106,17 @@ export default function ProfilePage() {
   }, [router, supabase])
 
   async function handleSave() {
-    setSaving(true)
     setError('')
     setSaved(false)
+
+    const trimmedPhone = phone.trim()
+    if (trimmedPhone && !PHONE_RE.test(trimmedPhone)) {
+      setPhoneError('Enter a valid phone number')
+      return
+    }
+    setPhoneError('')
+
+    setSaving(true)
 
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setSaving(false); return }
@@ -110,6 +132,8 @@ export default function ProfilePage() {
           ? companyName.trim()
           : `${firstName.trim()} ${lastName.trim()}`.trim(),
         country: country || null,
+        bio: bio.trim() || null,
+        phone: trimmedPhone || null,
       })
       .eq('id', session.user.id)
 
@@ -120,6 +144,70 @@ export default function ProfilePage() {
       setTimeout(() => setSaved(false), 3000)
     }
     setSaving(false)
+  }
+
+  async function handleAvatarChange(fileList: FileList | null) {
+    const file = fileList?.[0]
+    if (!file) return
+    setAvatarError('')
+
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Please choose an image file')
+      return
+    }
+    if (file.size > MAX_AVATAR_SIZE_MB * 1024 * 1024) {
+      setAvatarError(`Image must be under ${MAX_AVATAR_SIZE_MB}MB`)
+      return
+    }
+
+    setAvatarUploading(true)
+    try {
+      const sigResponse = await fetch('/api/avatar-upload-signature', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
+      })
+      const sig = await sigResponse.json()
+      if (!sigResponse.ok || sig.error) throw new Error(sig.error ?? 'Upload failed')
+
+      const cdForm = new FormData()
+      cdForm.append('file', file)
+      cdForm.append('api_key', sig.apiKey)
+      cdForm.append('timestamp', String(sig.timestamp))
+      cdForm.append('signature', sig.signature)
+      cdForm.append('folder', sig.folder)
+      cdForm.append('public_id', sig.publicId)
+      cdForm.append('overwrite', String(sig.overwrite))
+      cdForm.append('invalidate', String(sig.invalidate))
+      if (sig.format) cdForm.append('format', sig.format)
+
+      const cdResponse = await fetch(
+        `https://api.cloudinary.com/v1_1/${sig.cloudName}/${sig.resourceType}/upload`,
+        { method: 'POST', body: cdForm }
+      )
+      const cdResult = await cdResponse.json()
+      if (!cdResponse.ok || cdResult.error) {
+        throw new Error(cdResult.error?.message ?? 'Upload to storage failed. Please try again.')
+      }
+
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Session expired. Please sign in again.')
+
+      // Cache-bust so the new photo shows immediately even though the
+      // Cloudinary public_id (and therefore URL) is unchanged on re-upload.
+      const freshUrl = `${cdResult.secure_url}?v=${Date.now()}`
+
+      const { error: dbErr } = await supabase
+        .from('hosts')
+        .update({ avatar_url: freshUrl })
+        .eq('id', session.user.id)
+      if (dbErr) throw new Error(dbErr.message)
+
+      setAvatarUrl(freshUrl)
+    } catch (err: any) {
+      setAvatarError(err.message ?? 'Upload failed. Please try again.')
+    }
+    setAvatarUploading(false)
   }
 
   const input: React.CSSProperties = {
@@ -157,10 +245,51 @@ export default function ProfilePage() {
 
           <div>
             <h2 style={{ color: 'var(--text-primary)', margin: '0 0 0.25rem', fontSize: '1.25rem', fontWeight: 700 }}>My Profile</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>Update your display name and country</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>Update your photo, display name, and contact details</p>
           </div>
 
           <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', border: '1px solid var(--border)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
+
+            {/* Avatar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ position: 'relative', width: '72px', height: '72px', flexShrink: 0 }}>
+                <div style={{ width: '72px', height: '72px', borderRadius: '50%', overflow: 'hidden', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarUrl} alt="Profile photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ fontSize: '1.75rem', color: 'var(--text-dim)' }}>
+                      {(firstName || companyName || '?').trim().charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  {avatarUploading && (
+                    <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ width: '20px', height: '20px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    </div>
+                  )}
+                </div>
+                <label htmlFor="avatar-input" style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '26px', height: '26px', borderRadius: '50%', backgroundColor: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '2px solid var(--bg-surface)' }}>
+                  <span style={{ fontSize: '0.75rem' }}>📷</span>
+                </label>
+                <input
+                  id="avatar-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={e => handleAvatarChange(e.target.files)}
+                  disabled={avatarUploading}
+                  style={{ display: 'none' }}
+                />
+              </div>
+              <div>
+                <p style={{ color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 600, margin: 0 }}>Profile photo</p>
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.775rem', margin: '0.125rem 0 0' }}>
+                  JPG, PNG or WEBP. Up to {MAX_AVATAR_SIZE_MB}MB.
+                </p>
+                {avatarError && (
+                  <p style={{ color: '#ef4444', fontSize: '0.775rem', margin: '0.25rem 0 0' }}>{avatarError}</p>
+                )}
+              </div>
+            </div>
 
             {/* Email — read only */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -210,6 +339,22 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            {/* Phone */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Phone number</label>
+              <input
+                type="tel"
+                placeholder="+1 555 123 4567"
+                value={phone}
+                onChange={e => { setPhone(e.target.value); if (phoneError) setPhoneError('') }}
+                maxLength={20}
+                style={input}
+              />
+              {phoneError && (
+                <p style={{ color: '#ef4444', fontSize: '0.75rem', margin: '0.25rem 0 0' }}>{phoneError}</p>
+              )}
+            </div>
+
             {/* Country */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Country</label>
@@ -223,6 +368,22 @@ export default function ProfilePage() {
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Bio */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Bio</label>
+              <textarea
+                placeholder="Tell guests a little about yourself or your events..."
+                value={bio}
+                onChange={e => setBio(e.target.value.slice(0, MAX_BIO_LENGTH))}
+                maxLength={MAX_BIO_LENGTH}
+                rows={3}
+                style={{ ...input, minHeight: '84px', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.4 }}
+              />
+              <p style={{ color: 'var(--text-dim)', fontSize: '0.75rem', margin: '0.25rem 0 0', textAlign: 'right' }}>
+                {bio.length}/{MAX_BIO_LENGTH}
+              </p>
             </div>
 
             {error && (
