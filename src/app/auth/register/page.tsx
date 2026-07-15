@@ -111,7 +111,7 @@ export default function RegisterPage() {
               <>
                 <div>
                   <h1 style={{ color: 'var(--text-primary)', margin: '0 0 0.25rem', fontSize: '1.5rem', fontWeight: 700 }}>Create your account</h1>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>Host your first event in minutes</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>Host your first event in 60 seconds</p>
                 </div>
 
                 {/* Account type toggle */}

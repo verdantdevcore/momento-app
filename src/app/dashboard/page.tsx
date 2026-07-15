@@ -60,8 +60,8 @@ function tourTooltipPosition(rect: DOMRect): React.CSSProperties {
 }
 
 const TOUR_STEPS = [
-  { icon: '👋', title: 'Welcome to Momento', body: "Let's get your first event set up so guests can start sharing photos and videos in minutes.", target: null as null | 'newEvent' | 'category' | 'create', needsForm: false },
-  { icon: '➕', title: 'Create your first event', body: 'Tap this button to start a new event.', target: 'newEvent' as const, needsForm: false },
+  { icon: '👋', title: 'Welcome to Momento App', body: "Let's get your first event set up in 60 seconds so your guests can start sharing photos and videos instantly.", target: null as null | 'newEvent' | 'category' | 'create', needsForm: false },
+  { icon: '➕', title: 'Create your first event', body: 'Tap this button to create a new event.', target: 'newEvent' as const, needsForm: false },
   { icon: '🏷️', title: 'Give it a title & category', body: 'A clear title and category help guests recognize the event — and unlock the matching icon.', target: 'category' as const, needsForm: true },
   { icon: '✅', title: "You're ready", body: 'Hit "Create event" to publish it and get your shareable link and QR code.', target: 'create' as const, needsForm: true },
 ]
