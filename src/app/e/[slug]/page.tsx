@@ -39,7 +39,7 @@ function mediaCountLabel(items: Media[]): string {
   const count = items.length
   const hasPhoto = items.some(m => m.type === 'image')
   const hasVideo = items.some(m => m.type === 'video')
-  if (hasPhoto && hasVideo) return `${count} ${count === 1 ? 'item' : 'items'}`
+  if (hasPhoto && hasVideo) return `${count} ${count === 1 ? 'moment' : 'moments'}`
   if (hasVideo) return `${count} ${count === 1 ? 'video' : 'videos'}`
   return `${count} ${count === 1 ? 'photo' : 'photos'}`
 }
