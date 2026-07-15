@@ -377,7 +377,7 @@ export default function EventDashboardPage() {
                 {/* Visible QR */}
                 <QRCodeSVG value={eventUrl} size={200} />
                 {/* Hidden canvas for QR download — using ref not getElementById */}
-                <div style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', top: 0, left: '-9999px', width: 0, height: 0, overflow: 'hidden', visibility: 'hidden', pointerEvents: 'none' }}>
                   <QRCodeCanvas ref={qrCanvasRef} value={eventUrl} size={400} />
                 </div>
               </div>
@@ -434,7 +434,7 @@ export default function EventDashboardPage() {
                   type="date"
                   value={editDate}
                   onChange={e => setEditDate(e.target.value)}
-                  style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer', paddingLeft: '0.75rem', paddingRight: '0.25rem', paddingTop: '0.875rem', paddingBottom: '0.875rem' }}
+                  style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }}
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
@@ -443,7 +443,7 @@ export default function EventDashboardPage() {
                   type="time"
                   value={editTime}
                   onChange={e => setEditTime(e.target.value)}
-                  style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer', paddingLeft: '0.75rem', paddingRight: '0.25rem', paddingTop: '0.875rem', paddingBottom: '0.875rem' }}
+                  style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }}
                 />
               </div>
             </div>
