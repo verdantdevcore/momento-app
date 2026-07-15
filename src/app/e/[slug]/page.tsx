@@ -86,7 +86,10 @@ export default function EventFeedPage() {
         .eq('slug', slug)
         .single()
 
-      if (!eventData) return
+      if (!eventData) {
+        setLoading(false)
+        return
+      }
       setEvent(eventData)
 
       const { data: mediaData } = await supabase
@@ -250,8 +253,28 @@ export default function EventFeedPage() {
   )
 
   if (!event) return (
-    <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Event not found.</p>
+    <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
+      <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.875rem 1rem', display: 'flex', justifyContent: 'center' }}>
+        <OliveLogo size={22} />
+      </header>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', padding: '2rem', textAlign: 'center' }}>
+        <span style={{ fontSize: '2.5rem' }}>🔍</span>
+        <h2 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '1.125rem' }}>Event not found</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem', margin: 0, maxWidth: '24rem' }}>
+          This link may be broken, or the event may no longer exist.
+        </p>
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ marginTop: '0.5rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', padding: '0.875rem 1.5rem', fontWeight: 600, fontSize: '0.925rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+        >
+          Create your own event →
+        </a>
+      </div>
+
+      <Footer variant="minimal" />
     </main>
   )
 
@@ -288,16 +311,14 @@ export default function EventFeedPage() {
             </div>
           )}
 
-          {feedStatus === 'closed' && (
-            <a
-              href="/"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ marginTop: '0.5rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', padding: '0.875rem 1.5rem', fontWeight: 600, fontSize: '0.925rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
-            >
-              Create your own event →
-            </a>
-          )}
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ marginTop: '0.5rem', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', padding: '0.875rem 1.5rem', fontWeight: 600, fontSize: '0.925rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+          >
+            Create your own event →
+          </a>
         </div>
 
         <Footer variant="minimal" />
