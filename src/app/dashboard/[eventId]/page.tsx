@@ -11,7 +11,6 @@ import JSZip from 'jszip'
 import { createClient } from '@/lib/supabase/client'
 import { formatTimeAgo, formatEventDate, computeFeedClosesAt, FEED_CLOSE_OPTIONS, type FeedCloseMode } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
-import { GreenLogo } from '@/components/landing/Logo'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
 type ConfirmState = { message: string; onConfirm: () => void } | null
@@ -29,9 +28,9 @@ function ConfirmModal({ state, onClose }: { state: ConfirmState; onClose: () => 
       }}
     >
       <div
+        className="chrome-surface"
         onClick={e => e.stopPropagation()}
         style={{
-          backgroundColor: 'var(--bg-modal)',
           border: '1px solid var(--border)',
           borderRadius: '1rem',
           padding: '1.5rem',
@@ -52,7 +51,7 @@ function ConfirmModal({ state, onClose }: { state: ConfirmState; onClose: () => 
           </button>
           <button
             onClick={() => { state.onConfirm(); onClose() }}
-            style={{ flex: 1, border: '1px solid #7f1d1d', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 600, color: '#ef4444', background: 'none', cursor: 'pointer', fontSize: '0.9rem', minHeight: '48px' }}
+            style={{ flex: 1, border: '1px solid var(--danger-border)', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 600, color: 'var(--danger)', background: 'none', cursor: 'pointer', fontSize: '0.9rem', minHeight: '48px' }}
           >
             Delete
           </button>
@@ -346,7 +345,7 @@ export default function EventDashboardPage() {
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%' }}>
       <ConfirmModal state={confirmModal} onClose={closeConfirm} />
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
-      <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.625rem 0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'sticky', top: 0, zIndex: 10 }}>
+      <header className="chrome-surface" style={{ borderBottom: '1px solid var(--border)', padding: '0.625rem 0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'sticky', top: 0, zIndex: 10 }}>
         <Link href="/dashboard" style={{ ...pillButton, height: '36px', paddingLeft: '0.75rem', paddingRight: '0.75rem', fontSize: '0.825rem', flexShrink: 0 }}>← Back</Link>
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>

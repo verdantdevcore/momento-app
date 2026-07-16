@@ -9,7 +9,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { LoadingBar } from '@/components/ui/LoadingBar'
 import { formatTimeAgo, formatEventDate } from '@/lib/utils'
-import { GreenLogo, GreenLogoSm } from '@/components/landing/Logo'
+import { ChromeLogo } from '@/components/landing/Logo'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -509,14 +509,14 @@ export default function AdminPage() {
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column', paddingBottom: isMobile ? '4rem' : 0 }}>
 
       {/* Header */}
-      <header style={{
-        backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)',
+      <header className="chrome-surface" style={{
+        borderBottom: '1px solid var(--border)',
         paddingLeft: '1rem', paddingRight: '1rem', height: '3.5rem',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 30,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {isMobile ? <GreenLogoSm /> : <GreenLogo />}
+          {isMobile ? <ChromeLogo height={26} /> : <ChromeLogo height={32} />}
           <span style={{ color: 'var(--border)' }}>|</span>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>
             {isMobile ? 'Admin' : 'Super Admin'}
@@ -541,8 +541,8 @@ export default function AdminPage() {
 
         {/* Desktop sidebar */}
         {!isMobile && (
-          <aside style={{
-            width: '12.5rem', backgroundColor: 'var(--bg-surface)',
+          <aside className="chrome-surface" style={{
+            width: '12.5rem',
             borderRight: '1px solid var(--border)',
             padding: '1.25rem 0.75rem',
             display: 'flex', flexDirection: 'column', gap: '0.25rem', flexShrink: 0,
@@ -1186,9 +1186,9 @@ export default function AdminPage() {
 
       {/* Mobile bottom tab bar */}
       {isMobile && (
-        <nav style={{
+        <nav className="chrome-surface" style={{
           position: 'fixed', bottom: 0, left: 0, right: 0, height: '4rem',
-          backgroundColor: 'var(--bg-surface)', borderTop: '1px solid var(--border)',
+          borderTop: '1px solid var(--border)',
           display: 'flex', alignItems: 'stretch', zIndex: 40,
         }}>
           {navItems.map(({ id, icon, label }) => (
@@ -1247,8 +1247,9 @@ export default function AdminPage() {
             style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
           >
             <div
+              className="chrome-surface"
               onClick={e => e.stopPropagation()}
-              style={{ backgroundColor: 'var(--bg-modal)', border: '1px solid var(--border)', borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: '25rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
+              style={{ border: '1px solid var(--border)', borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: '25rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
             >
               <h3 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '1rem', fontWeight: 700 }}>{copy.title}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: 1.6, margin: 0 }}>{copy.body}</p>
@@ -1265,7 +1266,11 @@ export default function AdminPage() {
                     maxLength={500}
                     rows={3}
                     placeholder="e.g. Repeated uploads violating our content policy"
-                    style={{ width: '100%', boxSizing: 'border-box', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '0.625rem', padding: '0.625rem 0.75rem', color: 'var(--text-primary)', fontSize: '0.875rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                    // --text-on-input, not --text-primary: this sits on a
+                    // .chrome-surface, where --text-primary is the cream meant
+                    // for text directly on the olive and would vanish in the
+                    // field's own light background.
+                    style={{ width: '100%', boxSizing: 'border-box', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '0.625rem', padding: '0.625rem 0.75rem', color: 'var(--text-on-input)', fontSize: '0.875rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
                   />
                 </div>
               )}
@@ -1275,7 +1280,7 @@ export default function AdminPage() {
               </p>
 
               {actionError && (
-                <p style={{ color: '#ef4444', fontSize: '0.8rem', margin: 0, fontWeight: 600 }}>{actionError}</p>
+                <p style={{ color: 'var(--danger)', fontSize: '0.8rem', margin: 0, fontWeight: 600 }}>{actionError}</p>
               )}
 
               <div style={{ display: 'flex', gap: '0.625rem' }}>
@@ -1289,7 +1294,7 @@ export default function AdminPage() {
                 <button
                   onClick={confirmAction}
                   disabled={actionLoading}
-                  style={{ flex: 1, border: `1px solid ${copy.danger ? '#7f1d1d' : 'var(--border)'}`, borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 600, color: copy.danger ? '#ef4444' : 'var(--accent)', background: 'none', cursor: actionLoading ? 'not-allowed' : 'pointer', fontSize: '0.875rem', minHeight: '44px', opacity: actionLoading ? 0.6 : 1 }}
+                  style={{ flex: 1, border: `1px solid ${copy.danger ? 'var(--danger-border)' : 'var(--border)'}`, borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 600, color: copy.danger ? 'var(--danger)' : 'var(--accent)', background: 'none', cursor: actionLoading ? 'not-allowed' : 'pointer', fontSize: '0.875rem', minHeight: '44px', opacity: actionLoading ? 0.6 : 1 }}
                 >
                   {actionLoading ? 'Working...' : copy.confirm}
                 </button>
@@ -1313,7 +1318,7 @@ function ActionToast({ message, onClose }: { message: string; onClose: () => voi
 
   if (!message) return null
   return (
-    <div style={{ position: 'fixed', bottom: '5rem', left: '50%', transform: 'translateX(-50%)', zIndex: 1100, backgroundColor: 'var(--bg-modal)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.75rem 1.25rem', boxShadow: '0 10px 40px rgba(0,0,0,0.25)', maxWidth: 'calc(100vw - 2rem)' }}>
+    <div className="chrome-surface" style={{ position: 'fixed', bottom: '5rem', left: '50%', transform: 'translateX(-50%)', zIndex: 1100, border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.75rem 1.25rem', boxShadow: '0 10px 40px rgba(0,0,0,0.25)', maxWidth: 'calc(100vw - 2rem)' }}>
       <p style={{ color: 'var(--text-primary)', fontSize: '0.85rem', margin: 0, fontWeight: 600 }}>{message}</p>
     </div>
   )

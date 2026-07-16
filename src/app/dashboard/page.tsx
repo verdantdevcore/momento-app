@@ -10,7 +10,7 @@ import { generateSlug, formatEventDate, computeFeedClosesAt, FEED_CLOSE_OPTIONS,
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { LoadingBar } from '@/components/ui/LoadingBar'
-import { GreenLogo, GreenLogoSm } from '@/components/landing/Logo'
+import { ChromeLogo } from '@/components/landing/Logo'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
 type Event = {
@@ -310,9 +310,9 @@ export default function DashboardPage() {
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
       {loading && <LoadingBar />}
 
-      <header style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
+      <header className="chrome-surface" style={{ borderBottom: '1px solid var(--border)', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-          {isMobile ? <GreenLogoSm /> : <GreenLogo />}
+          {isMobile ? <ChromeLogo height={26} /> : <ChromeLogo height={32} />}
           <span style={{ color: 'var(--border)' }}>|</span>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, whiteSpace: 'nowrap' }}>My Events</span>
         </div>
@@ -326,7 +326,7 @@ export default function DashboardPage() {
               {menuOpen ? '✕' : '☰'}
             </button>
             {menuOpen && (
-              <div style={{ position: 'absolute', top: '44px', right: 0, backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.375rem', display: 'flex', flexDirection: 'column', minWidth: '160px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 50 }}>
+              <div className="chrome-surface" style={{ position: 'absolute', top: '44px', right: 0, border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.375rem', display: 'flex', flexDirection: 'column', minWidth: '160px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 50 }}>
                 <div style={{ padding: '0.5rem 0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Theme</span>
                   <ThemeToggle />

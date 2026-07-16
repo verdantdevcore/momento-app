@@ -18,6 +18,25 @@
   --accent:        #556B2F;
   --accent-hover:  #636B2F;
   --accent-faint:  #808000;
+  --danger:        #ef4444;
+  --danger-border: #7f1d1d;
+
+  /* Text inside an input well. Tracks --text-primary per theme but survives
+     the chrome override below, so any field placed on a .chrome-surface must
+     use this instead of --text-primary: the field keeps its own light
+     background, and the chrome's cream would be invisible in it. */
+  --text-on-input: #F7E7CE;
+
+  /* Chrome surfaces — consumed only via .chrome-surface below. Dark mode
+     already renders this chrome dark with cream text, so these match the
+     values it was using and nothing changes visually. */
+  --bg-chrome:            #161C2D;
+  --text-chrome:          #F7E7CE;
+  --text-chrome-dim:      #69727D;
+  --border-chrome:        #333333;
+  --accent-chrome:        #556B2F;
+  --danger-chrome:        #ef4444;
+  --danger-border-chrome: #7f1d1d;
 }
 
 [data-theme="light"] {
@@ -34,6 +53,50 @@
   --accent:        #556B2F;
   --accent-hover:  #636B2F;
   --accent-faint:  #556B2F;
+  --danger:        #ef4444;
+  --danger-border: #7f1d1d;
+  --text-on-input: #0A142F;
+
+  /* Chrome surfaces take the same olive as the active category pill, which
+     is a dark background sitting inside a light page — so it needs the pill's
+     cream text rather than the page's navy (navy on this olive is 3.1:1).
+     accent and danger get lighter variants for the same reason: the page's
+     accent IS this olive and would vanish into it, and #ef4444 on olive is
+     1.5:1. */
+  --bg-chrome:            #556B2F;
+  --text-chrome:          #F7E7CE;
+  --text-chrome-dim:      rgba(247, 231, 206, 0.72);
+  --border-chrome:        rgba(247, 231, 206, 0.22);
+  --accent-chrome:        #D7E8B0;
+  --danger-chrome:        #FFD9D9;
+  --danger-border-chrome: rgba(255, 170, 170, 0.5);
+}
+
+/* Modals, the admin sidebar and its mobile bottom nav, and the hosting
+   dashboard's sticky header and mobile menu.
+
+   These redefine the *existing* tokens rather than restyling each element, so
+   descendants that already read var(--text-primary), var(--border) and friends
+   pick the chrome values up through the cascade.
+
+   Deliberately not applied to the marketing navbar's mobile sidebar, which
+   keeps the page's own surface colours. */
+/* Exactly one of ChromeLogo's two marks is shown. display:none also keeps the
+   hidden one out of the accessibility tree, so it isn't announced twice. */
+.chrome-logo--light { display: none; }
+[data-theme="light"] .chrome-logo--dark  { display: none; }
+[data-theme="light"] .chrome-logo--light { display: block; }
+
+.chrome-surface {
+  background-color: var(--bg-chrome);
+  --text-primary:  var(--text-chrome);
+  --text-muted:    var(--text-chrome-dim);
+  --text-dim:      var(--text-chrome-dim);
+  --text-silver:   var(--text-chrome);
+  --border:        var(--border-chrome);
+  --accent:        var(--accent-chrome);
+  --danger:        var(--danger-chrome);
+  --danger-border: var(--danger-border-chrome);
 }
 
 *,
@@ -73,6 +136,21 @@ a { color: inherit; text-decoration: none; }
 @keyframes spin       { to { transform: rotate(360deg); } }
 @keyframes fadeIn     { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes loadingBar { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* ── Date/time sizing ──
+   Mobile Safari sizes date/time inputs from their native appearance and
+   ignores the declared width, so they render wider than every sibling field
+   and overflow the form. Dropping the native appearance lets width: 100% win;
+   min-width: 0 stops the intrinsic width from setting a floor when the input
+   is a flex item. Tapping still opens the native picker. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  max-width: 100%;
+}
 
 /* ── Date/time picker icons ── */
 input[type="date"]::-webkit-calendar-picker-indicator,
