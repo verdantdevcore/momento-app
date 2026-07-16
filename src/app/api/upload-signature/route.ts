@@ -1,29 +1,22 @@
-import { v2 as cloudinary } from 'cloudinary'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
 import { getFeedStatus } from '@/lib/utils'
+import { cloudinary, eventFolder } from '@/lib/cloudinary'
 import {
   isOriginAllowed,
+  isHostInactive,
   signatureRatelimit,
   UUID_RE,
   MAX_SIZE_MB,
   classifyFile,
 } from '@/lib/upload-security'
 
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-})
-
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
-
-const UPLOAD_FOLDER = 'Momento/AdimandJojo26'
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
@@ -64,13 +57,26 @@ export async function POST(request: NextRequest) {
 
     const { data: eventRow } = await adminClient
       .from('events')
-      .select('feed_opens_at, feed_closes_at')
+      .select('slug, host_id, feed_opens_at, feed_closes_at')
       .eq('id', eventId)
       .single()
 
     if (!eventRow || getFeedStatus(eventRow) !== 'open') {
       return NextResponse.json({ error: 'This event is not currently accepting uploads.' }, { status: 403 })
     }
+
+    // This route uses the service-role key, which bypasses the RLS policies
+    // that take restricted hosts' feeds dark — so the check is repeated here.
+    if (await isHostInactive(eventRow.host_id)) {
+      await logAudit({
+        event_type: 'upload_blocked_inactive_host',
+        ip,
+        metadata: { event_id: eventId },
+      })
+      return NextResponse.json({ error: 'This event is no longer available.' }, { status: 403 })
+    }
+
+    const uploadFolder = eventFolder(eventRow.slug)
 
     if (fileSize > MAX_SIZE_MB * 1024 * 1024) {
       return NextResponse.json(
@@ -93,7 +99,7 @@ export async function POST(request: NextRequest) {
     // Params must exactly match what the browser sends alongside the
     // signature on the direct-to-Cloudinary upload request.
     const paramsToSign: Record<string, string | number> = {
-      folder: UPLOAD_FOLDER,
+      folder: uploadFolder,
       timestamp,
       ...(isHeic && { format: 'jpg' }),
     }
@@ -108,7 +114,7 @@ export async function POST(request: NextRequest) {
       timestamp,
       apiKey: process.env.CLOUDINARY_API_KEY,
       cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-      folder: UPLOAD_FOLDER,
+      folder: uploadFolder,
       resourceType,
       format: isHeic ? 'jpg' : undefined,
     })

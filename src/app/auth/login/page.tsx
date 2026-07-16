@@ -14,6 +14,7 @@ function CallbackBanner() {
   const searchParams = useSearchParams()
   const confirmed = searchParams.get('confirmed')
   const hasError  = searchParams.get('error') === 'auth_callback_failed'
+  const account   = searchParams.get('account')
 
   const supabase = createClient()
   const [email, setEmail]       = useState('')
@@ -25,6 +26,22 @@ function CallbackBanner() {
     <p style={{ color: '#4ade80', backgroundColor: 'rgba(74,222,128,0.08)', padding: '0.75rem 1rem', borderRadius: '0.625rem', fontSize: '0.875rem', border: '1px solid rgba(74,222,128,0.2)', margin: 0 }}>
       ✓ Email confirmed. Sign in below to continue.
     </p>
+  )
+
+  // Set by the proxy when a restricted or deleted host is bounced out. The
+  // detail (and any reason) is in the email we sent them; this is just so
+  // they aren't staring at a login form that silently refuses to work.
+  if (account === 'restricted' || account === 'deleted') return (
+    <div style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)', padding: '0.75rem 1rem', borderRadius: '0.625rem', fontSize: '0.875rem', border: '1px solid rgba(239,68,68,0.2)', margin: 0 }}>
+      <p style={{ margin: 0, fontWeight: 600 }}>
+        Your account has been {account === 'deleted' ? 'deleted' : 'restricted'}.
+      </p>
+      <p style={{ margin: '0.375rem 0 0', color: 'var(--text-muted)' }}>
+        Check your email for details, or contact{' '}
+        <a href="mailto:support@sharemomento.app" style={{ color: 'var(--accent)' }}>support@sharemomento.app</a>
+        {' '}for more information.
+      </p>
+    </div>
   )
 
   if (!hasError) return null

@@ -1,5 +1,39 @@
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
+import { createClient } from '@supabase/supabase-js'
+
+const adminClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+)
+
+/**
+ * True if the host is restricted or soft-deleted, meaning their feeds are dark.
+ *
+ * The upload routes hold the service-role key, which bypasses the RLS policies
+ * that enforce this — so they have to ask explicitly.
+ *
+ * Deliberately fails *open*. This is defence in depth, not the primary control:
+ * the RLS policies already hide a restricted host's events and media from
+ * everyone, so an upload that slips through on a transient error lands
+ * somewhere nobody can see. Failing closed would instead turn any blip — or
+ * deploying this code before migration 001 adds the columns — into a total
+ * upload outage for every event on the platform.
+ */
+export async function isHostInactive(hostId: string): Promise<boolean> {
+  const { data, error } = await adminClient
+    .from('hosts')
+    .select('restricted_at, deleted_at')
+    .eq('id', hostId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[upload-security] host status lookup failed, allowing upload:', error)
+    return false
+  }
+  return Boolean(data?.restricted_at || data?.deleted_at)
+}
 
 // Normalise a URL to just its origin (scheme + host, no trailing slash)
 export function toOrigin(url: string | undefined): string | null {

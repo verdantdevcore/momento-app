@@ -31,6 +31,25 @@ type HostStat = {
   event_count: number
   upload_count: number
   total_views: number
+  restricted_at: string | null
+  restricted_reason: string | null
+  deleted_at: string | null
+  deletion_reason: string | null
+  purge_after: string | null
+}
+
+type AccountStatus = 'active' | 'restricted' | 'deleted'
+
+function hostStatus(host: HostStat): AccountStatus {
+  if (host.deleted_at) return 'deleted'
+  if (host.restricted_at) return 'restricted'
+  return 'active'
+}
+
+// Which account action the reason modal is collecting input for.
+type PendingAction = {
+  host: HostStat
+  action: 'restrict' | 'unrestrict' | 'delete' | 'restore'
 }
 
 type AdminEvent = {
@@ -75,11 +94,44 @@ const auditIcons: Record<string, string> = {
   signup: '🆕',
   login: '🔑',
   logout: '🚪',
+  event_deleted: '🗓',
+  event_delete_unauthorised: '🚫',
+  account_restricted: '🔒',
+  account_unrestricted: '🔓',
+  account_deleted: '⛔',
+  account_restored: '♻️',
+  account_purged: '🔥',
+  account_purge_failed: '⚠️',
+  upload_blocked_inactive_host: '🚫',
 }
 
 function SortIcon<T>({ col, sortKey, sortDir }: { col: keyof T; sortKey: keyof T; sortDir: 'asc' | 'desc' }) {
   if (sortKey !== col) return <span style={{ color: 'var(--border)', marginLeft: '0.25rem' }}>↕</span>
   return <span style={{ color: 'var(--text-primary)', marginLeft: '0.25rem' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>
+}
+
+const badgeBase: React.CSSProperties = {
+  fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem',
+  borderRadius: '999px', whiteSpace: 'nowrap',
+}
+
+const statusBadgeStyles: Record<AccountStatus, React.CSSProperties> = {
+  active:     { ...badgeBase, backgroundColor: 'rgba(85,107,47,0.2)',  color: '#6a8f3a', border: '1px solid rgba(85,107,47,0.4)' },
+  restricted: { ...badgeBase, backgroundColor: 'rgba(234,179,8,0.12)', color: '#b98900', border: '1px solid rgba(234,179,8,0.4)' },
+  deleted:    { ...badgeBase, backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.4)' },
+}
+
+const statusLabels: Record<AccountStatus, string> = {
+  active: 'Active', restricted: 'Restricted', deleted: 'Deleted',
+}
+
+function StatusBadge({ host }: { host: HostStat }) {
+  const status = hostStatus(host)
+  return <span style={statusBadgeStyles[status]}>{statusLabels[status]}</span>
+}
+
+function daysUntil(iso: string): number {
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000))
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -108,6 +160,13 @@ export default function AdminPage() {
   const [hostSortKey, setHostSortKey] = useState<keyof HostStat>('created_at')
   const [hostSortDir, setHostSortDir] = useState<'asc' | 'desc'>('desc')
   const [roleLoading, setRoleLoading] = useState<string | null>(null)
+
+  // Account moderation
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
+  const [actionReason, setActionReason] = useState('')
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionError, setActionError] = useState('')
+  const [actionToast, setActionToast] = useState('')
 
   // Events section
   const [eventSearch, setEventSearch] = useState('')
@@ -200,6 +259,112 @@ export default function AdminPage() {
     } finally {
       setRoleLoading(null)
     }
+  }
+
+  function openAction(host: HostStat, action: PendingAction['action']) {
+    setPendingAction({ host, action })
+    setActionReason('')
+    setActionError('')
+  }
+
+  // Applies the pending restrict/unrestrict/delete/restore action. The server
+  // is the authority on what's allowed (e.g. acting on another admin); this
+  // just surfaces its error.
+  async function confirmAction() {
+    if (!pendingAction) return
+    const { host, action } = pendingAction
+    const reason = actionReason.trim() || null
+
+    setActionLoading(true)
+    setActionError('')
+    try {
+      const request = {
+        restrict:   { url: '/api/admin/restrict-user', method: 'POST',   body: { targetId: host.id, restrict: true, reason } },
+        unrestrict: { url: '/api/admin/restrict-user', method: 'POST',   body: { targetId: host.id, restrict: false } },
+        delete:     { url: '/api/admin/delete-user',   method: 'POST',   body: { targetId: host.id, reason } },
+        restore:    { url: '/api/admin/delete-user',   method: 'DELETE', body: { targetId: host.id } },
+      }[action]
+
+      const res = await fetch(request.url, {
+        method: request.method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request.body),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Action failed')
+
+      const now = new Date().toISOString()
+      setHosts(prev => prev.map(h => {
+        if (h.id !== host.id) return h
+        switch (action) {
+          case 'restrict':   return { ...h, restricted_at: now, restricted_reason: reason }
+          case 'unrestrict': return { ...h, restricted_at: null, restricted_reason: null }
+          case 'delete':     return { ...h, deleted_at: now, deletion_reason: reason, purge_after: json.purgeAfter ?? null }
+          case 'restore':    return { ...h, deleted_at: null, deletion_reason: null, purge_after: null }
+        }
+      }))
+
+      const name = host.full_name ?? host.email
+      const past = { restrict: 'restricted', unrestrict: 'restored', delete: 'deleted', restore: 'restored' }[action]
+      // emailSent is undefined for restore (no notice is sent for it).
+      const emailNote = json.emailSent === false ? ' — but the email notification failed to send' : ''
+      setActionToast(`${name} ${past}${emailNote}`)
+      setPendingAction(null)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Action failed')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // A plain render function rather than a nested component, so React doesn't
+  // remount the buttons on every parent render.
+  function renderAccountActions(host: HostStat, stacked: boolean) {
+    if (host.id === currentUserId) {
+      return <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>You</span>
+    }
+
+    const status = hostStatus(host)
+    // Only the role button is disabled while its own request is in flight, so
+    // only it gets the disabled affordance.
+    const busy = roleLoading === host.id
+    const btn = (extra: React.CSSProperties, disabled = false): React.CSSProperties => ({
+      padding: stacked ? '0.5rem' : '0.3rem 0.75rem',
+      width: stacked ? '100%' : undefined,
+      borderRadius: '0.5rem',
+      fontSize: stacked ? '0.775rem' : '0.75rem',
+      fontWeight: 600,
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      border: '1px solid var(--border)',
+      whiteSpace: 'nowrap',
+      opacity: disabled ? 0.6 : 1,
+      ...extra,
+    })
+    const neutral = { backgroundColor: 'rgba(85,107,47,0.08)', color: 'var(--accent)' }
+    const warn    = { backgroundColor: 'rgba(234,179,8,0.1)',  color: '#b98900' }
+    const danger  = { backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444' }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: stacked ? 'column' : 'row', gap: '0.375rem', justifyContent: 'center' }}>
+        <button disabled={busy} onClick={() => handleSetRole(host.id, !host.is_super_admin)} style={btn(host.is_super_admin ? danger : neutral, busy)}>
+          {busy ? '...' : host.is_super_admin ? 'Revoke Admin' : 'Make Admin'}
+        </button>
+
+        {/* Admins are exempt from moderation — the server rejects it too, so
+            this keeps the UI honest rather than offering a doomed action. */}
+        {!host.is_super_admin && status !== 'deleted' && (
+          <button onClick={() => openAction(host, status === 'restricted' ? 'unrestrict' : 'restrict')} style={btn(status === 'restricted' ? neutral : warn)}>
+            {status === 'restricted' ? 'Unrestrict' : 'Restrict'}
+          </button>
+        )}
+
+        {!host.is_super_admin && (
+          <button onClick={() => openAction(host, status === 'deleted' ? 'restore' : 'delete')} style={btn(status === 'deleted' ? neutral : danger)}>
+            {status === 'deleted' ? 'Restore' : 'Delete'}
+          </button>
+        )}
+      </div>
+    )
   }
 
   // ── Events helpers ────────────────────────────────────────────────────────
@@ -738,11 +903,25 @@ export default function AdminPage() {
                           <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.925rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{host.full_name ?? 'Unnamed'}</p>
                           <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', margin: '0.125rem 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{host.email}</p>
                         </div>
-                        {host.is_super_admin
-                          ? <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: '#6a8f3a', fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.4)', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: '0.5rem' }}>Admin</span>
-                          : <span style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid var(--border)', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: '0.5rem' }}>Host</span>
-                        }
+                        <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0, marginLeft: '0.5rem' }}>
+                          {hostStatus(host) !== 'active' && <StatusBadge host={host} />}
+                          {host.is_super_admin
+                            ? <span style={{ backgroundColor: 'rgba(85,107,47,0.2)', color: '#6a8f3a', fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid rgba(85,107,47,0.4)', whiteSpace: 'nowrap' }}>Admin</span>
+                            : <span style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Host</span>
+                          }
+                        </div>
                       </div>
+
+                      {(host.restricted_reason || host.deletion_reason) && (
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0 0 0.625rem', fontStyle: 'italic' }}>
+                          {host.deletion_reason ?? host.restricted_reason}
+                        </p>
+                      )}
+                      {host.purge_after && (
+                        <p style={{ color: '#ef4444', fontSize: '0.75rem', margin: '0 0 0.625rem', fontWeight: 600 }}>
+                          Purges in {daysUntil(host.purge_after)} days
+                        </p>
+                      )}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.625rem', marginBottom: '0.625rem' }}>
                         {[{ label: 'Events', value: host.event_count }, { label: 'Uploads', value: host.upload_count }, { label: 'Views', value: host.total_views.toLocaleString() }].map(stat => (
                           <div key={stat.label} style={{ textAlign: 'center' }}>
@@ -751,15 +930,7 @@ export default function AdminPage() {
                           </div>
                         ))}
                       </div>
-                      {host.id !== currentUserId && (
-                        <button
-                          disabled={roleLoading === host.id}
-                          onClick={() => handleSetRole(host.id, !host.is_super_admin)}
-                          style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', fontSize: '0.775rem', fontWeight: 600, cursor: roleLoading === host.id ? 'not-allowed' : 'pointer', border: '1px solid var(--border)', backgroundColor: host.is_super_admin ? 'rgba(239,68,68,0.08)' : 'rgba(85,107,47,0.08)', color: host.is_super_admin ? '#ef4444' : 'var(--accent)', opacity: roleLoading === host.id ? 0.6 : 1 }}
-                        >
-                          {roleLoading === host.id ? 'Updating...' : host.is_super_admin ? 'Revoke Admin' : 'Make Admin'}
-                        </button>
-                      )}
+                      {renderAccountActions(host, true)}
                     </div>
                   ))}
                 </div>
@@ -777,12 +948,13 @@ export default function AdminPage() {
                           <th style={{ ...thStyle, textAlign: 'center' }} onClick={() => toggleHostSort('total_views')}>Views <SortIcon<HostStat> col="total_views" sortKey={hostSortKey} sortDir={hostSortDir} /></th>
                           <th style={thStyle} onClick={() => toggleHostSort('created_at')}>Joined <SortIcon<HostStat> col="created_at" sortKey={hostSortKey} sortDir={hostSortDir} /></th>
                           <th style={{ ...thStyle, textAlign: 'center' }}>Role</th>
+                          <th style={{ ...thStyle, textAlign: 'center' }}>Status</th>
                           <th style={{ ...thStyle, textAlign: 'center' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredHosts.length === 0 && (
-                          <tr><td colSpan={8} style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>No hosts found</td></tr>
+                          <tr><td colSpan={9} style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>No hosts found</td></tr>
                         )}
                         {filteredHosts.map((host, i) => (
                           <tr key={host.id} style={{ backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
@@ -799,17 +971,15 @@ export default function AdminPage() {
                               }
                             </td>
                             <td style={{ ...tdStyle, textAlign: 'center' }}>
-                              {host.id !== currentUserId ? (
-                                <button
-                                  disabled={roleLoading === host.id}
-                                  onClick={() => handleSetRole(host.id, !host.is_super_admin)}
-                                  style={{ padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: roleLoading === host.id ? 'not-allowed' : 'pointer', border: '1px solid var(--border)', backgroundColor: host.is_super_admin ? 'rgba(239,68,68,0.08)' : 'rgba(85,107,47,0.08)', color: host.is_super_admin ? '#ef4444' : 'var(--accent)', whiteSpace: 'nowrap', opacity: roleLoading === host.id ? 0.6 : 1 }}
-                                >
-                                  {roleLoading === host.id ? '...' : host.is_super_admin ? 'Revoke Admin' : 'Make Admin'}
-                                </button>
-                              ) : (
-                                <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>You</span>
+                              <StatusBadge host={host} />
+                              {host.purge_after && (
+                                <p style={{ color: '#ef4444', fontSize: '0.7rem', margin: '0.25rem 0 0', fontWeight: 600 }}>
+                                  Purges in {daysUntil(host.purge_after)}d
+                                </p>
                               )}
+                            </td>
+                            <td style={{ ...tdStyle, textAlign: 'center' }}>
+                              {renderAccountActions(host, false)}
                             </td>
                           </tr>
                         ))}
@@ -1043,6 +1213,108 @@ export default function AdminPage() {
       )}
 
       {!isMobile && <Footer variant="minimal" />}
+
+      {/* ── Account action confirmation ───────────────────────────────── */}
+      {pendingAction && (() => {
+        const { host, action } = pendingAction
+        const name = host.full_name ?? host.email
+        const copy = {
+          restrict: {
+            title: 'Restrict account',
+            body: `${name} will be signed out and locked out of their dashboard, and all ${host.event_count} of their event feeds will stop accepting and showing uploads. Nothing is deleted — you can undo this at any time.`,
+            confirm: 'Restrict', danger: false, reason: true,
+          },
+          unrestrict: {
+            title: 'Lift restriction',
+            body: `${name} will be able to sign in again, and their event feeds will go back live.`,
+            confirm: 'Unrestrict', danger: false, reason: false,
+          },
+          delete: {
+            title: 'Delete account',
+            body: `${name} will be signed out and locked out, and their feeds go offline immediately. Their ${host.event_count} events and ${host.upload_count} uploads will be permanently erased in 30 days — until then you can restore them.`,
+            confirm: 'Delete', danger: true, reason: true,
+          },
+          restore: {
+            title: 'Restore account',
+            body: `${name} will be able to sign in again, their feeds go back live, and the scheduled purge of their ${host.upload_count} uploads is cancelled.`,
+            confirm: 'Restore', danger: false, reason: false,
+          },
+        }[action]
+
+        return (
+          <div
+            onClick={() => !actionLoading && setPendingAction(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ backgroundColor: 'var(--bg-modal)', border: '1px solid var(--border)', borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: '25rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
+            >
+              <h3 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '1rem', fontWeight: 700 }}>{copy.title}</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: 1.6, margin: 0 }}>{copy.body}</p>
+
+              {copy.reason && (
+                <div>
+                  <label htmlFor="action-reason" style={{ display: 'block', color: 'var(--text-primary)', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.375rem' }}>
+                    Reason <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(optional — included in the email)</span>
+                  </label>
+                  <textarea
+                    id="action-reason"
+                    value={actionReason}
+                    onChange={e => setActionReason(e.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    placeholder="e.g. Repeated uploads violating our content policy"
+                    style={{ width: '100%', boxSizing: 'border-box', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '0.625rem', padding: '0.625rem 0.75rem', color: 'var(--text-primary)', fontSize: '0.875rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                  />
+                </div>
+              )}
+
+              <p style={{ color: 'var(--text-dim)', fontSize: '0.775rem', margin: 0 }}>
+                {action === 'restore' ? 'No email is sent for a restore.' : `${name} will be emailed and told to contact support@sharemomento.app.`}
+              </p>
+
+              {actionError && (
+                <p style={{ color: '#ef4444', fontSize: '0.8rem', margin: 0, fontWeight: 600 }}>{actionError}</p>
+              )}
+
+              <div style={{ display: 'flex', gap: '0.625rem' }}>
+                <button
+                  onClick={() => setPendingAction(null)}
+                  disabled={actionLoading}
+                  style={{ flex: 1, border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', background: 'none', cursor: actionLoading ? 'not-allowed' : 'pointer', fontSize: '0.875rem', minHeight: '44px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmAction}
+                  disabled={actionLoading}
+                  style={{ flex: 1, border: `1px solid ${copy.danger ? '#7f1d1d' : 'var(--border)'}`, borderRadius: '0.75rem', padding: '0.75rem', fontWeight: 600, color: copy.danger ? '#ef4444' : 'var(--accent)', background: 'none', cursor: actionLoading ? 'not-allowed' : 'pointer', fontSize: '0.875rem', minHeight: '44px', opacity: actionLoading ? 0.6 : 1 }}
+                >
+                  {actionLoading ? 'Working...' : copy.confirm}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      <ActionToast message={actionToast} onClose={() => setActionToast('')} />
     </main>
+  )
+}
+
+function ActionToast({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    if (!message) return
+    const t = setTimeout(onClose, 5000)
+    return () => clearTimeout(t)
+  }, [message, onClose])
+
+  if (!message) return null
+  return (
+    <div style={{ position: 'fixed', bottom: '5rem', left: '50%', transform: 'translateX(-50%)', zIndex: 1100, backgroundColor: 'var(--bg-modal)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.75rem 1.25rem', boxShadow: '0 10px 40px rgba(0,0,0,0.25)', maxWidth: 'calc(100vw - 2rem)' }}>
+      <p style={{ color: 'var(--text-primary)', fontSize: '0.85rem', margin: 0, fontWeight: 600 }}>{message}</p>
+    </div>
   )
 }

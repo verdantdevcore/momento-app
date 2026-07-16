@@ -30,7 +30,9 @@ export async function GET() {
     const [metricsRes, hostsRes, eventsRes, mediaRes, authUsersRes] = await Promise.all([
       adminClient.from('platform_metrics').select('*').single(),
       // Query hosts table directly — view may have RLS or missing email
-      adminClient.from('hosts').select('id, full_name, is_super_admin, created_at'),
+      adminClient
+        .from('hosts')
+        .select('id, full_name, is_super_admin, created_at, restricted_at, restricted_reason, deleted_at, deletion_reason, purge_after'),
       adminClient
         .from('events')
         .select('id, title, slug, category, event_date, location, created_at, host_id')
@@ -52,6 +54,8 @@ export async function GET() {
 
     const hosts = (hostsRes.data ?? []).map((h: {
       id: string; full_name: string | null; is_super_admin: boolean; created_at: string
+      restricted_at: string | null; restricted_reason: string | null
+      deleted_at: string | null; deletion_reason: string | null; purge_after: string | null
     }) => {
       const auth        = authUserMap[h.id] ?? { email: '', created_at: h.created_at }
       const hostEvents  = eventsData.filter((e: { host_id: string }) => e.host_id === h.id)
@@ -67,6 +71,11 @@ export async function GET() {
         event_count:    hostEvents.length,
         upload_count:   hostMedia.length,
         total_views:    totalViews,
+        restricted_at:     h.restricted_at,
+        restricted_reason: h.restricted_reason,
+        deleted_at:        h.deleted_at,
+        deletion_reason:   h.deletion_reason,
+        purge_after:       h.purge_after,
       }
     })
 

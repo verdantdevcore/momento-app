@@ -1,22 +1,17 @@
-import { v2 as cloudinary } from 'cloudinary'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
 import { getFeedStatus } from '@/lib/utils'
+import { cloudinary } from '@/lib/cloudinary'
 import {
   isOriginAllowed,
+  isHostInactive,
   saveRatelimit,
   UUID_RE,
 } from '@/lib/upload-security'
 
-// Used only to clean up an orphaned Cloudinary asset if the DB insert
-// below fails after the file has already landed in storage.
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-})
-
+// cloudinary is used only to clean up an orphaned asset if the DB insert below
+// fails after the file has already landed in storage.
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -76,12 +71,23 @@ export async function POST(request: NextRequest) {
 
     const { data: eventRow } = await adminClient
       .from('events')
-      .select('feed_opens_at, feed_closes_at')
+      .select('host_id, feed_opens_at, feed_closes_at')
       .eq('id', eventId)
       .single()
 
     if (!eventRow || getFeedStatus(eventRow) !== 'open') {
       return NextResponse.json({ error: 'This event is not currently accepting uploads.' }, { status: 403 })
+    }
+
+    // Service-role key bypasses the RLS policies that take restricted hosts'
+    // feeds dark, so the check is repeated here.
+    if (await isHostInactive(eventRow.host_id)) {
+      await logAudit({
+        event_type: 'upload_blocked_inactive_host',
+        ip,
+        metadata: { event_id: eventId },
+      })
+      return NextResponse.json({ error: 'This event is no longer available.' }, { status: 403 })
     }
 
     // Only ever trust Cloudinary URLs — this endpoint must not become a

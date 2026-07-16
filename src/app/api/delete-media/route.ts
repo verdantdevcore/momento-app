@@ -1,35 +1,14 @@
-import { v2 as cloudinary } from 'cloudinary'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { logAudit } from '@/lib/audit'
-
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-})
+import { cloudinary, extractPublicId } from '@/lib/cloudinary'
 
 const adminClient = createSupabaseClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
-
-function extractPublicId(url: string): string | null {
-  try {
-    const path = new URL(url).pathname
-    const uploadIdx = path.indexOf('/upload/')
-    if (uploadIdx === -1) return null
-    let after = path.slice(uploadIdx + 8) // skip '/upload/'
-    // Strip version prefix like v1234567890/
-    if (/^v\d+\//.test(after)) after = after.replace(/^v\d+\//, '')
-    // Strip extension
-    return after.replace(/\.[^/.]+$/, '')
-  } catch {
-    return null
-  }
-}
 
 export async function DELETE(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'

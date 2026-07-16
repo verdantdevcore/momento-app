@@ -265,11 +265,27 @@ export default function EventDashboardPage() {
   function handleDeleteEvent() {
     if (!event) return
     setConfirmModal({
-      message: `Delete "${event.title}"? This will remove all uploads too.`,
+      message: `Delete "${event.title}"? This permanently deletes all photos and videos guests uploaded. This cannot be undone.`,
       onConfirm: async () => {
         setDeleting(true)
-        await supabase.from('events').delete().eq('id', event.id)
-        router.push('/dashboard')
+        try {
+          // Routed through the API so the Cloudinary assets are destroyed too —
+          // deleting the row here would cascade the media records away and
+          // orphan the files in storage.
+          const res = await fetch('/api/delete-event', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eventId: event.id }),
+          })
+          if (!res.ok) {
+            const d = await res.json()
+            throw new Error(d.error ?? 'Delete failed')
+          }
+          router.push('/dashboard')
+        } catch (err) {
+          setErrorToast(err instanceof Error ? err.message : 'Failed to delete event. Please try again.')
+          setDeleting(false)
+        }
       },
     })
   }

@@ -1,7 +1,7 @@
-import { v2 as cloudinary } from 'cloudinary'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logAudit } from '@/lib/audit'
+import { cloudinary, CLOUDINARY_ROOT } from '@/lib/cloudinary'
 import {
   isOriginAllowed,
   avatarRatelimit,
@@ -9,13 +9,7 @@ import {
   classifyFile,
 } from '@/lib/upload-security'
 
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-})
-
-const AVATAR_FOLDER = 'Momento/avatars'
+const AVATAR_FOLDER = `${CLOUDINARY_ROOT}/avatars`
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'

@@ -4,6 +4,19 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 const FROM = 'Momento <onboarding@sharemomento.app>'
 const ONBOARDING_TEAM_EMAIL = 'onboarding@sharemomento.app'
+const SUPPORT_EMAIL = 'support@sharemomento.app'
+
+// Account-action emails are the user's only notice that their account changed
+// state, so escape anything interpolated into them — full_name is user-supplied
+// and would otherwise be an HTML injection vector into an email we send.
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 async function send(to: string, subject: string, html: string) {
   if (!resend) {
@@ -50,6 +63,61 @@ export async function sendHostReminderEmail(host: { email: string; fullName: str
       <p>Hi ${host.fullName ?? 'there'},</p>
       <p>${copy.body}</p>
       <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" style="display:inline-block;background:#556B2F;color:#F7E7CE;padding:0.75rem 1.25rem;border-radius:0.5rem;text-decoration:none;font-weight:600;">Create your event</a></p>
+    `)
+  )
+}
+
+function supportLine(): string {
+  return `<p style="color:#555;">If you believe this was a mistake, or you'd like more information, contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color:#556B2F;">${SUPPORT_EMAIL}</a>.</p>`
+}
+
+export async function sendAccountRestrictedEmail(
+  host: { email: string; fullName: string | null },
+  reason: string | null
+) {
+  const greeting = host.fullName ? escapeHtml(host.fullName) : 'there'
+  await send(
+    host.email,
+    'Your Momento account has been restricted',
+    wrapper(`
+      <p>Hi ${greeting},</p>
+      <p>Your Momento account has been restricted. You can no longer sign in, and your event feeds are no longer accepting or displaying uploads.</p>
+      ${reason ? `<p><strong>Reason:</strong> ${escapeHtml(reason)}</p>` : ''}
+      ${supportLine()}
+    `)
+  )
+}
+
+export async function sendAccountUnrestrictedEmail(host: { email: string; fullName: string | null }) {
+  const greeting = host.fullName ? escapeHtml(host.fullName) : 'there'
+  await send(
+    host.email,
+    'Your Momento account has been restored',
+    wrapper(`
+      <p>Hi ${greeting},</p>
+      <p>The restriction on your Momento account has been lifted. You can sign in again, and your event feeds are live.</p>
+      <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" style="display:inline-block;background:#556B2F;color:#F7E7CE;padding:0.75rem 1.25rem;border-radius:0.5rem;text-decoration:none;font-weight:600;">Go to your dashboard</a></p>
+      ${supportLine()}
+    `)
+  )
+}
+
+export async function sendAccountDeletedEmail(
+  host: { email: string; fullName: string | null },
+  reason: string | null,
+  purgeAfter: Date
+) {
+  const greeting = host.fullName ? escapeHtml(host.fullName) : 'there'
+  const purgeDate = purgeAfter.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  await send(
+    host.email,
+    'Your Momento account has been deleted',
+    wrapper(`
+      <p>Hi ${greeting},</p>
+      <p>Your Momento account has been deleted. You can no longer sign in, and your event feeds are offline.</p>
+      ${reason ? `<p><strong>Reason:</strong> ${escapeHtml(reason)}</p>` : ''}
+      <p>Your events, photos and videos will be permanently erased on <strong>${purgeDate}</strong>. Until then, they can still be recovered if this was a mistake.</p>
+      ${supportLine()}
     `)
   )
 }
