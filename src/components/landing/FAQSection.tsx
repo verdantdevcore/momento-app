@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronDown } from "lucide-react";
+import { CaretDown } from "@phosphor-icons/react";
 
 const FAQS = [
   {
@@ -70,7 +70,7 @@ function FAQItem({ item, index }: { item: (typeof FAQS)[0]; index: number }) {
           {item.q}
         </p>
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }} className="flex-shrink-0">
-          <ChevronDown size={18} color="#556B2F" />
+          <CaretDown size={18} color="#556B2F" />
         </motion.div>
       </button>
       <AnimatePresence>

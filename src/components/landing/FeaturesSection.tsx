@@ -1,15 +1,15 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Lock, Upload, UserCheck, Radio, FolderOpen, Sparkles } from "lucide-react";
+import { Lock, Upload, UserCheck, Broadcast, FolderOpen, Sparkle } from "@phosphor-icons/react";
 
 const FEATURES = [
   { icon: Lock, title: "Private Event Albums", desc: "Keep every event secure and invite-only. Your memories stay between the people who were there." },
   { icon: Upload, title: "Instant Photo & Video Uploads", desc: "Guests can contribute memories in real time as the event unfolds." },
   { icon: UserCheck, title: "Guest-Friendly Sharing", desc: "No complicated setup required. Join and start sharing in seconds." },
-  { icon: Radio, title: "Real-Time Memory Collection", desc: "Watch moments appear live during the event — every photo, every perspective." },
+  { icon: Broadcast, title: "Real-Time Memory Collection", desc: "Watch moments appear live during the event — every photo, every perspective." },
   { icon: FolderOpen, title: "Easy Access for Everyone", desc: "Everything stays organized in one shared place for hosts and attendees alike." },
-  { icon: Sparkles, title: "Secure and Simple Experience", desc: "Designed to feel effortless for everyone at the event." },
+  { icon: Sparkle, title: "Secure and Simple Experience", desc: "Designed to feel effortless for everyone at the event." },
 ];
 
 export function FeaturesSection() {

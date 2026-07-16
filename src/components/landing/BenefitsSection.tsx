@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle } from "@phosphor-icons/react";
 
 const HOST = [
   { title: "Collect Every Memory", desc: "No more chasing guests for photos after the event." },
@@ -22,7 +22,7 @@ function List({ items, dark }: { items: typeof HOST; dark?: boolean }) {
     <div className="flex flex-col gap-4">
       {items.map((item, i) => (
         <motion.div key={item.title} initial={{ opacity: 0, x: dark ? 20 : -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: i * 0.1 }} className="flex items-start gap-3">
-          <CheckCircle2 size={20} color={dark ? "#F7E7CE" : "#556B2F"} className="flex-shrink-0 mt-0.5" />
+          <CheckCircle size={20} color={dark ? "#F7E7CE" : "#556B2F"} className="flex-shrink-0 mt-0.5" />
           <div>
             <p style={{ fontWeight: 700, fontSize: "0.95rem", color: dark ? "#F7E7CE" : "#1a1a1a", marginBottom: "0.15rem" }}>{item.title}</p>
             <p style={{ fontSize: "0.85rem", color: dark ? "rgba(247,231,206,0.75)" : "#666", lineHeight: 1.5 }}>{item.desc}</p>

@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "motion/react";
-import { MessageSquare, Share2, Lock } from "lucide-react";
+import { ChatCentered, ShareNetwork, Lock } from "@phosphor-icons/react";
 
 const POINTS = [
-  { icon: MessageSquare, title: "Group chats get messy", desc: "Photos get buried in conversations and are impossible to find later.", bad: true },
-  { icon: Share2, title: "Social media isn't private", desc: "Not everyone wants their memories public on social platforms.", bad: true },
+  { icon: ChatCentered, title: "Group chats get messy", desc: "Photos get buried in conversations and are impossible to find later.", bad: true },
+  { icon: ShareNetwork, title: "Social media isn't private", desc: "Not everyone wants their memories public on social platforms.", bad: true },
   { icon: Lock, title: "Momento App keeps it all together", desc: "One private, organized space — accessible to everyone who was there.", bad: false },
 ];
 

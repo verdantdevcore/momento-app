@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { List, X } from "@phosphor-icons/react";
 import { GreenLogo, FooterLogo } from "./Logo";
 import { createClient } from "@/lib/supabase/client";
 
@@ -163,7 +163,7 @@ export function Navbar() {
             style={{ color: "#556B2F" }}
             aria-label="Open menu"
           >
-            <Menu size={26} />
+            <List size={26} />
           </button>
         </div>
       </nav>

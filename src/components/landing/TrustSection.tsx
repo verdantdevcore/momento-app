@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Shield, Zap, Users, Heart } from "lucide-react";
+import { Shield, Lightning, Users, Heart } from "@phosphor-icons/react";
 
 const ITEMS = [
   { icon: Shield, label: "Private by default", desc: "Your memories, securely shared." },
-  { icon: Zap, label: "Fast & simple", desc: "Fast, simple, and guest-friendly." },
+  { icon: Lightning, label: "Fast & simple", desc: "Fast, simple, and guest-friendly." },
   { icon: Users, label: "Real connections", desc: "Designed for real events and real connections." },
   { icon: Heart, label: "Every perspective", desc: "Every guest captures a different story." },
 ];

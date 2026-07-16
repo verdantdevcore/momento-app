@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "motion/react";
-import { PlusCircle, Share2, Camera, Play } from "lucide-react";
+import { PlusCircle, ShareNetwork, Camera, Play } from "@phosphor-icons/react";
 
 const STEPS = [
   { number: "01", icon: PlusCircle, title: "Create", desc: "Start a private shared album for your event in seconds.", bg: "#f3f7ee", dark: false },
-  { number: "02", icon: Share2, title: "Share", desc: "Invite guests with one tap using a simple link or QR code.", bg: "#F7E7CE", dark: false },
+  { number: "02", icon: ShareNetwork, title: "Share", desc: "Invite guests with one tap using a simple link or QR code.", bg: "#F7E7CE", dark: false },
   { number: "03", icon: Camera, title: "Capture Together", desc: "Everyone contributes photos and videos instantly — no setup or signup required.", bg: "#f3f7ee", dark: false },
   { number: "04", icon: Play, title: "Relive Forever", desc: "Enjoy every moment from every perspective, all in one beautiful place.", bg: "#556B2F", dark: true },
 ];
