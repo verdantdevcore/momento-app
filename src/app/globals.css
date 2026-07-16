@@ -102,6 +102,13 @@
 [data-theme="light"] .chrome-logo--dark  { display: none; }
 [data-theme="light"] .chrome-logo--light { display: block; }
 
+/* Same idea for the theme toggle's icon: the server can't know the visitor's
+   theme, so the choice is made in CSS rather than JS. Dark shows the sun (the
+   theme you'd switch to), light shows the moon. */
+.theme-icon--light { display: none; }
+[data-theme="light"] .theme-icon--dark  { display: none; }
+[data-theme="light"] .theme-icon--light { display: inline; }
+
 .chrome-surface {
   background-color: var(--bg-chrome);
   --text-primary:  var(--text-chrome);

@@ -3,7 +3,7 @@
 import { useTheme } from '@/lib/theme-context'
 
 export function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme()
+  const { toggleTheme } = useTheme()
 
   return (
     <button
@@ -26,7 +26,12 @@ export function ThemeToggle() {
         flexShrink: 0,
       }}
     >
-      {theme === 'dark' ? '☀️' : '🌙'}
+      {/* Both icons are rendered and CSS shows the one matching data-theme.
+          Picking in JS is what caused the hydration error: the server has no
+          way to know the visitor's theme, so it always rendered the sun while
+          a light-mode client rendered the moon. */}
+      <span className="theme-icon--dark" aria-hidden="true">☀️</span>
+      <span className="theme-icon--light" aria-hidden="true">🌙</span>
     </button>
   )
 }
