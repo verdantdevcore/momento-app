@@ -49,7 +49,7 @@ function hostStatus(host: HostStat): AccountStatus {
 // Which account action the reason modal is collecting input for.
 type PendingAction = {
   host: HostStat
-  action: 'restrict' | 'unrestrict' | 'delete' | 'restore'
+  action: 'restrict' | 'unrestrict' | 'delete' | 'restore' | 'purge'
 }
 
 type AdminEvent = {
@@ -261,6 +261,10 @@ export default function AdminPage() {
     }
   }
 
+  // Deleted accounts stay listed so they can be restored, so the header count
+  // calls them out separately rather than quietly including them.
+  const deletedHostCount = hosts.filter(h => h.deleted_at).length
+
   function openAction(host: HostStat, action: PendingAction['action']) {
     setPendingAction({ host, action })
     setActionReason('')
@@ -283,6 +287,7 @@ export default function AdminPage() {
         unrestrict: { url: '/api/admin/restrict-user', method: 'POST',   body: { targetId: host.id, restrict: false } },
         delete:     { url: '/api/admin/delete-user',   method: 'POST',   body: { targetId: host.id, reason } },
         restore:    { url: '/api/admin/delete-user',   method: 'DELETE', body: { targetId: host.id } },
+        purge:      { url: '/api/admin/purge-user',    method: 'POST',   body: { targetId: host.id } },
       }[action]
 
       const res = await fetch(request.url, {
@@ -293,20 +298,29 @@ export default function AdminPage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Action failed')
 
-      const now = new Date().toISOString()
-      setHosts(prev => prev.map(h => {
-        if (h.id !== host.id) return h
-        switch (action) {
-          case 'restrict':   return { ...h, restricted_at: now, restricted_reason: reason }
-          case 'unrestrict': return { ...h, restricted_at: null, restricted_reason: null }
-          case 'delete':     return { ...h, deleted_at: now, deletion_reason: reason, purge_after: json.purgeAfter ?? null }
-          case 'restore':    return { ...h, deleted_at: null, deletion_reason: null, purge_after: null }
-        }
-      }))
+      if (action === 'purge') {
+        // The row is gone from the database now, not merely flagged — so it
+        // leaves the table rather than changing status.
+        setHosts(prev => prev.filter(h => h.id !== host.id))
+      } else {
+        const now = new Date().toISOString()
+        setHosts(prev => prev.map(h => {
+          if (h.id !== host.id) return h
+          switch (action) {
+            case 'restrict':   return { ...h, restricted_at: now, restricted_reason: reason }
+            case 'unrestrict': return { ...h, restricted_at: null, restricted_reason: null }
+            case 'delete':     return { ...h, deleted_at: now, deletion_reason: reason, purge_after: json.purgeAfter ?? null }
+            case 'restore':    return { ...h, deleted_at: null, deletion_reason: null, purge_after: null }
+          }
+        }))
+      }
 
       const name = host.full_name ?? host.email
-      const past = { restrict: 'restricted', unrestrict: 'restored', delete: 'deleted', restore: 'restored' }[action]
-      // emailSent is undefined for restore (no notice is sent for it).
+      const past = {
+        restrict: 'restricted', unrestrict: 'restored', delete: 'deleted',
+        restore: 'restored', purge: 'permanently deleted',
+      }[action]
+      // emailSent is undefined for restore and purge (neither sends a notice).
       const emailNote = json.emailSent === false ? ' — but the email notification failed to send' : ''
       setActionToast(`${name} ${past}${emailNote}`)
       setPendingAction(null)
@@ -340,9 +354,11 @@ export default function AdminPage() {
       opacity: disabled ? 0.6 : 1,
       ...extra,
     })
-    const neutral = { backgroundColor: 'rgba(85,107,47,0.08)', color: 'var(--accent)' }
-    const warn    = { backgroundColor: 'rgba(234,179,8,0.1)',  color: '#b98900' }
-    const danger  = { backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444' }
+    // Solid fills rather than faint tints: on the light table these read as
+    // real buttons, and each pairing clears 4.5:1 for its label.
+    const neutral = { backgroundColor: 'var(--accent)', color: '#F7E7CE', borderColor: 'transparent' }
+    const warn    = { backgroundColor: '#B45309',       color: '#FFF7ED', borderColor: 'transparent' }
+    const danger  = { backgroundColor: '#B91C1C',       color: '#FEF2F2', borderColor: 'transparent' }
 
     return (
       <div style={{ display: 'flex', flexDirection: stacked ? 'column' : 'row', gap: '0.375rem', justifyContent: 'center' }}>
@@ -361,6 +377,14 @@ export default function AdminPage() {
         {!host.is_super_admin && (
           <button onClick={() => openAction(host, status === 'deleted' ? 'restore' : 'delete')} style={btn(status === 'deleted' ? neutral : danger)}>
             {status === 'deleted' ? 'Restore' : 'Delete'}
+          </button>
+        )}
+
+        {/* Only offered once an account is already soft-deleted, so purging is
+            always a deliberate second step rather than one misclick. */}
+        {!host.is_super_admin && status === 'deleted' && (
+          <button onClick={() => openAction(host, 'purge')} style={btn(danger)}>
+            Delete permanently
           </button>
         )}
       </div>
@@ -526,7 +550,7 @@ export default function AdminPage() {
           <Link href="/dashboard" style={{
             height: '2rem', paddingLeft: '0.75rem', paddingRight: '0.75rem',
             borderRadius: '0.5rem', border: '1px solid var(--border)',
-            backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)',
+            backgroundColor: 'var(--btn-chrome-bg)', color: 'var(--btn-chrome-text)',
             fontSize: '0.8rem', fontWeight: 600,
             display: 'flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap',
           }}>
@@ -877,7 +901,10 @@ export default function AdminPage() {
               <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', flexDirection: isMobile ? 'column' : 'row', gap: '0.75rem' }}>
                 <div>
                   <h3 style={{ color: 'var(--text-primary)', margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 700 }}>Host Management</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>{filteredHosts.length} of {hosts.length} hosts</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>
+                    {filteredHosts.length} of {hosts.length} hosts
+                    {deletedHostCount > 0 && ` · ${deletedHostCount} deleted`}
+                  </p>
                 </div>
                 <input
                   type="text"
@@ -1239,6 +1266,11 @@ export default function AdminPage() {
             body: `${name} will be able to sign in again, their feeds go back live, and the scheduled purge of their ${host.upload_count} uploads is cancelled.`,
             confirm: 'Restore', danger: false, reason: false,
           },
+          purge: {
+            title: 'Delete permanently — right now',
+            body: `This erases ${name}'s account immediately instead of waiting for the purge date: ${host.event_count} events and ${host.upload_count} photos and videos are deleted from Cloudinary and the database, along with their login. This cannot be undone, and they cannot be restored afterwards.`,
+            confirm: 'Delete permanently', danger: true, reason: false,
+          },
         }[action]
 
         return (
@@ -1276,7 +1308,9 @@ export default function AdminPage() {
               )}
 
               <p style={{ color: 'var(--text-dim)', fontSize: '0.775rem', margin: 0 }}>
-                {action === 'restore' ? 'No email is sent for a restore.' : `${name} will be emailed and told to contact support@sharemomento.app.`}
+                {action === 'restore' || action === 'purge'
+                  ? `No email is sent — ${name} was already notified when the account was ${action === 'purge' ? 'deleted' : 'restricted'}.`
+                  : `${name} will be emailed and told to contact support@sharemomento.app.`}
               </p>
 
               {actionError && (

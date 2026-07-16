@@ -34,7 +34,32 @@ export async function purgeEvent(event: { id: string; slug: string }): Promise<A
   return result
 }
 
-/** Purges every event belonging to a host. Used by the account-purge cron. */
+/**
+ * Irreversibly tears an account down: Cloudinary assets, events, media, the
+ * hosts row and the auth user. Nothing here is recoverable afterwards.
+ *
+ * Ordering matters. The media rows are the only record of where an event's
+ * assets live, so they have to be read before anything cascades them away —
+ * purgeHostEvents does the assets first, and only then is the auth user
+ * removed.
+ *
+ * Shared by the 30-day purge cron and the admin's "delete permanently" action
+ * so both destroy exactly the same things.
+ */
+export async function purgeHostAccount(hostId: string): Promise<AssetDeletionResult> {
+  const assets = await purgeHostEvents(hostId)
+
+  // Usually cascades the hosts row away via its FK to auth.users; the explicit
+  // delete below covers schemas where it doesn't.
+  const { error } = await adminClient.auth.admin.deleteUser(hostId)
+  if (error) throw new Error(`auth delete failed: ${error.message}`)
+
+  await adminClient.from('hosts').delete().eq('id', hostId)
+
+  return assets
+}
+
+/** Purges every event belonging to a host. */
 export async function purgeHostEvents(hostId: string): Promise<AssetDeletionResult> {
   const { data: events } = await adminClient
     .from('events')

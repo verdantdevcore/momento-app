@@ -130,7 +130,7 @@ type Media = {
 const pillButton: React.CSSProperties = {
   height: '44px', paddingLeft: '1rem', paddingRight: '1rem',
   borderRadius: '0.75rem', border: '1px solid var(--border)',
-  backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)',
+  backgroundColor: 'var(--btn-chrome-bg)', color: 'var(--btn-chrome-text)',
   fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   gap: '0.375rem', whiteSpace: 'nowrap' as const,

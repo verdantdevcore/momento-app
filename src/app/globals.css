@@ -37,6 +37,15 @@
   --accent-chrome:        #556B2F;
   --danger-chrome:        #ef4444;
   --danger-border-chrome: #7f1d1d;
+
+  /* Buttons sitting *on* a .chrome-surface (header actions, the hamburger,
+     the theme toggle). They can't use --bg-input + --text-muted: inside the
+     chrome those resolve to a white well behind cream text, which is
+     invisible. These values are what dark mode already rendered, so it is
+     unchanged. */
+  --btn-chrome-bg:     #0A142F;
+  --btn-chrome-text:   #69727D;
+  --btn-chrome-border: #333333;
 }
 
 [data-theme="light"] {
@@ -70,6 +79,12 @@
   --accent-chrome:        #D7E8B0;
   --danger-chrome:        #FFD9D9;
   --danger-border-chrome: rgba(255, 170, 170, 0.5);
+
+  /* A solid cream chip on the olive chrome: 4.7:1 for the olive label on the
+     chip, and the same again for the chip against the chrome behind it. */
+  --btn-chrome-bg:     #F7E7CE;
+  --btn-chrome-text:   #556B2F;
+  --btn-chrome-border: rgba(85, 107, 47, 0.35);
 }
 
 /* Modals, the admin sidebar and its mobile bottom nav, and the hosting

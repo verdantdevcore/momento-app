@@ -377,7 +377,7 @@ export default function DashboardPage() {
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <button
               onClick={() => setMenuOpen(v => !v)}
-              style={{ height: '36px', width: '36px', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}
+              style={{ height: '36px', width: '36px', borderRadius: '0.5rem', border: '1px solid var(--btn-chrome-border)', backgroundColor: 'var(--btn-chrome-bg)', color: 'var(--btn-chrome-text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}
             >
               {menuOpen ? '✕' : '☰'}
             </button>
@@ -400,7 +400,7 @@ export default function DashboardPage() {
                   </>
                 )}
                 <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '0.25rem 0' }} />
-                <button onClick={() => { setMenuOpen(false); handleSignOut() }} style={{ padding: '0.625rem 0.875rem', borderRadius: '0.5rem', color: '#ef4444', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none', textAlign: 'left' }}>
+                <button onClick={() => { setMenuOpen(false); handleSignOut() }} style={{ padding: '0.625rem 0.875rem', borderRadius: '0.5rem', color: 'var(--danger)', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none', textAlign: 'left' }}>
                   Sign out
                 </button>
               </div>
@@ -408,15 +408,15 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
-            <Link href="/dashboard/profile" style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.775rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            <Link href="/dashboard/profile" style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--btn-chrome-border)', backgroundColor: 'var(--btn-chrome-bg)', color: 'var(--btn-chrome-text)', fontSize: '0.775rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap' }}>
               👤 Profile
             </Link>
             {isAdmin && (
-              <Link href="/admin" style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.775rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              <Link href="/admin" style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--btn-chrome-border)', backgroundColor: 'var(--btn-chrome-bg)', color: 'var(--btn-chrome-text)', fontSize: '0.775rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                 ⚙ Admin
               </Link>
             )}
-            <button onClick={handleSignOut} style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.775rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <button onClick={handleSignOut} style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--btn-chrome-border)', backgroundColor: 'var(--btn-chrome-bg)', color: 'var(--btn-chrome-text)', fontSize: '0.775rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               Sign out
             </button>
             <ThemeToggle />

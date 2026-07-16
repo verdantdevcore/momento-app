@@ -232,7 +232,7 @@ export default function ProfilePage() {
 
       <header className="chrome-surface" style={{ borderBottom: '1px solid var(--border)', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-          <Link href="/dashboard" style={{ height: '32px', paddingLeft: '0.75rem', paddingRight: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <Link href="/dashboard" style={{ height: '32px', paddingLeft: '0.75rem', paddingRight: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--btn-chrome-border)', backgroundColor: 'var(--btn-chrome-bg)', color: 'var(--btn-chrome-text)', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
             ← Dashboard
           </Link>
           {isMobile ? <ChromeLogo height={26} /> : <ChromeLogo height={32} />}

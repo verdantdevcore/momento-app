@@ -13,9 +13,11 @@ export function ThemeToggle() {
         width: '44px',
         height: '44px',
         borderRadius: '50%',
-        border: '1px solid var(--border)',
-        backgroundColor: 'var(--bg-input)',
-        color: 'var(--text-primary)',
+        // Chrome tokens: the toggle only ever sits in a header or the mobile
+        // menu, both of which are .chrome-surface.
+        border: '1px solid var(--btn-chrome-border)',
+        backgroundColor: 'var(--btn-chrome-bg)',
+        color: 'var(--btn-chrome-text)',
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',

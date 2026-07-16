@@ -88,12 +88,17 @@ export async function GET() {
     })
     const topCategory = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
 
-    const metrics = metricsRes.data ?? {
-      total_hosts:   hosts.length,
-      total_events:  eventsData.length,
-      total_uploads: totalUploads,
-      total_views:   totalViews,
-      top_category:  topCategory,
+    // total_hosts is always recomputed rather than taken from platform_metrics:
+    // that view predates soft deletion and still counts deleted accounts, so the
+    // headline number never dropped when an admin deleted someone.
+    const metrics = {
+      ...(metricsRes.data ?? {
+        total_events:  eventsData.length,
+        total_uploads: totalUploads,
+        total_views:   totalViews,
+        top_category:  topCategory,
+      }),
+      total_hosts: hosts.filter(h => !h.deleted_at).length,
     }
 
     return NextResponse.json({

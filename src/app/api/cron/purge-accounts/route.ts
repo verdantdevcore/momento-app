@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs'
 import { createClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
-import { purgeHostEvents } from '@/lib/events'
+import { purgeHostAccount } from '@/lib/events'
 
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,14 +40,7 @@ async function handler() {
 
   for (const host of due) {
     try {
-      const assets = await purgeHostEvents(host.id)
-
-      // Removes the hosts row too when the FK cascades from auth.users; the
-      // explicit delete below covers schemas where it does not.
-      const { error: authErr } = await adminClient.auth.admin.deleteUser(host.id)
-      if (authErr) throw new Error(`auth delete failed: ${authErr.message}`)
-
-      await adminClient.from('hosts').delete().eq('id', host.id)
+      const assets = await purgeHostAccount(host.id)
 
       await logAudit({
         event_type: 'account_purged',
