@@ -31,7 +31,7 @@ function ConfirmModal({ state, onClose }: { state: ConfirmState; onClose: () => 
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          backgroundColor: 'var(--bg-surface)',
+          backgroundColor: 'var(--bg-modal)',
           border: '1px solid var(--border)',
           borderRadius: '1rem',
           padding: '1.5rem',

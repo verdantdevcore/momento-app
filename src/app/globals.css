@@ -7,6 +7,7 @@
 :root {
   --bg-base:       #0A142F;
   --bg-surface:    #161C2D;
+  --bg-modal:      #161C2D;
   --bg-input:      #0A142F;
   --border:        #333333;
   --border-hover:  #C0BFBF;
@@ -22,6 +23,7 @@
 [data-theme="light"] {
   --bg-base:       #F7E7CE;
   --bg-surface:    #556b2f66;
+  --bg-modal:      #B6B58E;
   --bg-input:      #ffffff;
   --border:        #C0BFBF;
   --border-hover:  #444444;
