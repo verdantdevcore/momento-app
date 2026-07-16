@@ -331,6 +331,10 @@ export default function DashboardPage() {
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Theme</span>
                   <ThemeToggle />
                 </div>
+                <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '0.25rem 0' }} />
+                <Link href="/dashboard/profile" onClick={() => setMenuOpen(false)} style={{ padding: '0.625rem 0.875rem', borderRadius: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, textDecoration: 'none', display: 'block' }}>
+                  👤 Profile
+                </Link>
                 {isAdmin && (
                   <>
                     <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '0.25rem 0' }} />
@@ -348,6 +352,9 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
+            <Link href="/dashboard/profile" style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.775rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              👤 Profile
+            </Link>
             {isAdmin && (
               <Link href="/admin" style={{ height: '32px', paddingLeft: '0.625rem', paddingRight: '0.625rem', borderRadius: '0.5rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '0.775rem', fontWeight: 600, display: 'flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                 ⚙ Admin
