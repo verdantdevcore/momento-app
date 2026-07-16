@@ -9,7 +9,11 @@ import Image from 'next/image'
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react'
 import JSZip from 'jszip'
 import { createClient } from '@/lib/supabase/client'
-import { formatTimeAgo, formatEventDate, computeFeedClosesAt, FEED_CLOSE_OPTIONS, type FeedCloseMode } from '@/lib/utils'
+import {
+  formatTimeAgo, formatEventDate, computeFeedClosesAt, computeFeedOpensAt,
+  instantToZonedWallClock, detectTimezone, supportedTimezones, timezoneLabel,
+  FEED_CLOSE_OPTIONS, type FeedCloseMode,
+} from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
@@ -103,18 +107,15 @@ type Event = {
   event_time: string | null
   category: string | null
   created_at: string
+  timezone: string | null
   feed_opens_at: string | null
   feed_close_mode: FeedCloseMode
   feed_closes_at: string | null
 }
 
-// Converts an ISO timestamp to the value a <input type="datetime-local"> expects (local time, no offset).
-function toDatetimeLocal(iso: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
+// Superseded by instantToZonedWallClock, which renders the stored instant in
+// the event's own zone. The old version used the browser's zone, so a host
+// editing a remote event saw — and re-saved — the wrong wall clock.
 
 type Media = {
   id: string
@@ -169,6 +170,9 @@ export default function EventDashboardPage() {
   const [editFeedOpensAt, setEditFeedOpensAt] = useState('')
   const [editFeedCloseMode, setEditFeedCloseMode] = useState<FeedCloseMode>('none')
   const [editFeedClosesAtCustom, setEditFeedClosesAtCustom] = useState('')
+  const [editTimezone, setEditTimezone] = useState('')
+  const [showTzPicker, setShowTzPicker] = useState(false)
+  const [timezones, setTimezones] = useState<string[]>([])
   const [deleting, setDeleting] = useState(false)
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null)
   const [confirmModal, setConfirmModal] = useState<ConfirmState>(null)
@@ -230,21 +234,30 @@ export default function EventDashboardPage() {
 
   function openEdit() {
     if (!event) return
+    // Events created before zones existed have none; fall back to this browser's,
+    // which is the zone their stored instants were originally resolved in.
+    const tz = event.timezone || detectTimezone()
     setEditTitle(event.title)
     setEditDescription(event.description ?? '')
     setEditLocation(event.location ?? '')
     setEditDate(event.event_date ?? '')
     setEditTime(event.event_time ?? '')
     setEditCategory(event.category ?? '')
-    setEditFeedOpensAt(toDatetimeLocal(event.feed_opens_at))
+    setEditTimezone(tz)
+    setTimezones(supportedTimezones())
+    setShowTzPicker(false)
+    // Rendered in the event's zone, so the host edits the same wall clock a
+    // guest sees rather than its translation into wherever the host is.
+    setEditFeedOpensAt(instantToZonedWallClock(event.feed_opens_at, tz))
     setEditFeedCloseMode(event.feed_close_mode ?? 'none')
-    setEditFeedClosesAtCustom(event.feed_close_mode === 'custom' ? toDatetimeLocal(event.feed_closes_at) : '')
+    setEditFeedClosesAtCustom(event.feed_close_mode === 'custom' ? instantToZonedWallClock(event.feed_closes_at, tz) : '')
     setEditing(true)
   }
 
   async function handleSaveEdit() {
     if (!editTitle.trim() || !event) return
-    const feedClosesAt = computeFeedClosesAt(editDate || null, editTime || null, editFeedCloseMode, editFeedClosesAtCustom || null)
+    const tz = editTimezone || detectTimezone()
+    const feedClosesAt = computeFeedClosesAt(editDate || null, editTime || null, editFeedCloseMode, editFeedClosesAtCustom || null, tz)
     const { data, error } = await supabase
       .from('events')
       .update({
@@ -253,7 +266,8 @@ export default function EventDashboardPage() {
         event_date: editDate || null,
         event_time: editTime || null,
         category: editCategory || null,
-        feed_opens_at: editFeedOpensAt ? new Date(editFeedOpensAt).toISOString() : null,
+        timezone: tz,
+        feed_opens_at: computeFeedOpensAt(editFeedOpensAt || null, tz),
         feed_close_mode: editFeedCloseMode,
         feed_closes_at: feedClosesAt,
       })
@@ -464,6 +478,38 @@ export default function EventDashboardPage() {
                 />
               </div>
             </div>
+
+            {/* Governs the date/time above and the feed window below — all of
+                them are wall clocks at the venue. */}
+            {editTimezone && (
+              showTzPicker ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label htmlFor="edit-timezone" style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>
+                    Event timezone
+                  </label>
+                  <select
+                    id="edit-timezone"
+                    value={editTimezone}
+                    onChange={e => setEditTimezone(e.target.value)}
+                    style={{ ...inputStyle, appearance: 'none' as React.CSSProperties['appearance'] }}
+                  >
+                    {timezones.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+                  </select>
+                  <p style={{ color: 'var(--text-dim)', fontSize: '0.75rem', margin: '0.125rem 0 0' }}>
+                    Changing this keeps the times as typed and moves when they actually happen.
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowTzPicker(true)}
+                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', fontSize: '0.775rem', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  🌍 {timezoneLabel(editTimezone)}
+                  <span style={{ color: 'var(--accent)', fontWeight: 600, marginLeft: '0.375rem', textDecoration: 'underline' }}>Change</span>
+                </button>
+              )
+            )}
 
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Feed visibility</p>

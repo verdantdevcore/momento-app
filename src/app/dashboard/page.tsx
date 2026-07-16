@@ -2,11 +2,15 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { generateSlug, formatEventDate, computeFeedClosesAt, FEED_CLOSE_OPTIONS, type FeedCloseMode } from '@/lib/utils'
+import {
+  generateSlug, formatEventDate, computeFeedClosesAt, computeFeedOpensAt,
+  detectTimezone, supportedTimezones, timezoneLabel,
+  FEED_CLOSE_OPTIONS, type FeedCloseMode,
+} from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { LoadingBar } from '@/components/ui/LoadingBar'
@@ -23,6 +27,7 @@ type Event = {
   event_time: string | null
   category: string | null
   created_at: string
+  timezone: string | null
   feed_opens_at: string | null
   feed_close_mode: FeedCloseMode
   feed_closes_at: string | null
@@ -35,6 +40,10 @@ const EVENT_CATEGORIES = [
   'Vacation', 'Other'
 ]
 
+
+// The browser's timezone can't change mid-session, so there's nothing to
+// subscribe to — this exists only to satisfy useSyncExternalStore's signature.
+const noSubscribe = () => () => {}
 
 const categoryEmojis: Record<string, string> = {
   Wedding: '💍', Birthday: '🎂', Anniversary: '🥂', Engagement: '💌',
@@ -80,6 +89,15 @@ export default function DashboardPage() {
   const [feedOpensAt, setFeedOpensAt] = useState('')
   const [feedCloseMode, setFeedCloseMode] = useState<FeedCloseMode>('none')
   const [feedClosesAtCustom, setFeedClosesAtCustom] = useState('')
+  // Detecting the zone during render would resolve to the *server's* zone under
+  // SSR and then mismatch on hydration. useSyncExternalStore renders nothing on
+  // the server and the real zone on the client, which is also why the picker
+  // line below is gated on `timezone` being non-empty.
+  const detectedTimezone = useSyncExternalStore(noSubscribe, detectTimezone, () => '')
+  const [timezoneOverride, setTimezoneOverride] = useState<string | null>(null)
+  const timezone = timezoneOverride ?? detectedTimezone
+  const [showTzPicker, setShowTzPicker] = useState(false)
+  const timezones = useMemo(() => supportedTimezones(), [])
   const [loading, setLoading] = useState(false)
   const [createError, setCreateError] = useState('')
   const [pageLoading, setPageLoading] = useState(true)
@@ -177,6 +195,7 @@ export default function DashboardPage() {
     setTitle(''); setDescription(''); setLocation('')
     setEventDate(''); setEventTime(''); setCategory('')
     setFeedOpensAt(''); setFeedCloseMode('none'); setFeedClosesAtCustom('')
+    setTimezoneOverride(null); setShowTzPicker(false)
     setCreateError('')
     setShowForm(false)
   }
@@ -188,13 +207,17 @@ export default function DashboardPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setLoading(false); return }
     const slug = generateSlug(title)
-    const feedClosesAt = computeFeedClosesAt(eventDate || null, eventTime || null, feedCloseMode, feedClosesAtCustom || null)
+    // Every wall clock on this form is a time at the venue, so all of them are
+    // resolved in the event's zone rather than this browser's.
+    const eventTz = timezone || detectTimezone()
+    const feedClosesAt = computeFeedClosesAt(eventDate || null, eventTime || null, feedCloseMode, feedClosesAtCustom || null, eventTz)
     const { data, error } = await supabase
       .from('events')
       .insert({
         host_id: session.user.id, title, description, location: location || null,
         event_date: eventDate || null, event_time: eventTime || null, category: category || null, slug,
-        feed_opens_at: feedOpensAt ? new Date(feedOpensAt).toISOString() : null,
+        timezone: eventTz,
+        feed_opens_at: computeFeedOpensAt(feedOpensAt || null, eventTz),
         feed_close_mode: feedCloseMode,
         feed_closes_at: feedClosesAt,
       })
@@ -266,6 +289,39 @@ export default function DashboardPage() {
             <input type="time" value={eventTime} onChange={e => setEventTime(e.target.value)} style={{ ...input, colorScheme: 'dark', cursor: 'pointer' }} />
           </div>
         </div>
+
+        {/* The zone governs the date and time above and the feed window below —
+            all of them are wall clocks at the venue. Collapsed by default since
+            it's already the host's own zone for most events. */}
+        {timezone && (
+          showTzPicker ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label htmlFor="event-timezone" style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>
+                Event timezone
+              </label>
+              <select
+                id="event-timezone"
+                value={timezone}
+                onChange={e => setTimezoneOverride(e.target.value)}
+                style={{ ...input, appearance: 'none' as React.CSSProperties['appearance'] }}
+              >
+                {timezones.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+              </select>
+              <p style={{ color: 'var(--text-dim)', fontSize: '0.75rem', margin: '0.125rem 0 0' }}>
+                Guests always see the event time in this zone, wherever they are.
+              </p>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowTzPicker(true)}
+              style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', fontSize: '0.775rem', cursor: 'pointer', textAlign: 'left' }}
+            >
+              🌍 {timezoneLabel(timezone)}
+              <span style={{ color: 'var(--accent)', fontWeight: 600, marginLeft: '0.375rem', textDecoration: 'underline' }}>Change</span>
+            </button>
+          )
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Description</label>
           <textarea placeholder="Tell guests what to expect..." value={description} onChange={e => setDescription(e.target.value)} rows={3} style={{ ...input, minHeight: 'unset', resize: 'none' }} />

@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { formatTimeAgo, formatEventDate, getFeedStatus, countdownParts } from '@/lib/utils'
+import { formatTimeAgo, formatEventDate, formatEventTime, getFeedStatus, countdownParts } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { OliveLogo } from '@/components/landing/Logo'
@@ -20,6 +20,7 @@ type Event = {
   location: string | null
   event_date: string | null
   event_time: string | null
+  timezone: string | null
   feed_opens_at: string | null
   feed_closes_at: string | null
 }
@@ -82,7 +83,7 @@ export default function EventFeedPage() {
     async function fetchData() {
       const { data: eventData } = await supabase
         .from('events')
-        .select('id, title, slug, description, location, event_date, event_time, feed_opens_at, feed_closes_at')
+        .select('id, title, slug, description, location, event_date, event_time, timezone, feed_opens_at, feed_closes_at')
         .eq('slug', slug)
         .single()
 
@@ -209,7 +210,7 @@ export default function EventFeedPage() {
     setRefreshing(true)
     const { data: eventData } = await supabase
       .from('events')
-      .select('id, title, slug, description, location, event_date, event_time, feed_opens_at, feed_closes_at')
+      .select('id, title, slug, description, location, event_date, event_time, timezone, feed_opens_at, feed_closes_at')
       .eq('slug', slug)
       .single()
     if (eventData) {
@@ -365,7 +366,7 @@ export default function EventFeedPage() {
               {event.event_date && (
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
                   📅 {formatEventDate(event.event_date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                  {event.event_time && ` · ${event.event_time}`}
+                  {event.event_time && ` · ${formatEventTime(event.event_date, event.event_time, event.timezone)}`}
                 </span>
               )}
               {event.location && (

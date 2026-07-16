@@ -41,6 +41,146 @@ export function formatEventDate(
   return localDate.toLocaleDateString(locale, options)
 }
 
+// ─── Timezones ──────────────────────────────────────────────────────────────
+
+// An event happens at a place, so its date and time are a wall clock at that
+// place — not an instant. The zone is what converts between the two. Without
+// it, "24 hours after the event starts" was resolved using whatever zone the
+// host's browser happened to be in, so a Lagos-based host scheduling a Toronto
+// wedding closed the feed five hours early.
+
+export function detectTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
+  }
+}
+
+export function supportedTimezones(): string[] {
+  try {
+    // supportedValuesOf is widely available but not in every TS lib target.
+    const values = (Intl as { supportedValuesOf?: (k: string) => string[] })
+      .supportedValuesOf?.('timeZone')
+    if (values?.length) return values
+  } catch {
+    // fall through to the minimal list
+  }
+  return Array.from(new Set([detectTimezone(), 'UTC'])).sort()
+}
+
+/**
+ * The offset in ms between UTC and `timeZone`'s wall clock at `instant` —
+ * what you add to UTC to get the local time there.
+ */
+function zoneOffsetMs(instant: Date, timeZone: string): number {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  })
+  const parts: Record<string, string> = {}
+  for (const { type, value } of dtf.formatToParts(instant)) parts[type] = value
+  // Some ICU builds render midnight as hour 24 under hour12:false.
+  const hour = Number(parts.hour) % 24
+  const wallAsUtc = Date.UTC(
+    Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+    hour, Number(parts.minute), Number(parts.second)
+  )
+  // formatToParts carries no sub-second precision, so compare like for like.
+  return wallAsUtc - Math.floor(instant.getTime() / 1000) * 1000
+}
+
+/**
+ * Resolves a wall clock ("YYYY-MM-DDTHH:mm") in `timeZone` to the instant it
+ * names, or null if it can't be parsed.
+ *
+ * Two passes: the first offset has to be measured at the wrong instant, since
+ * the right one isn't known yet. That only matters within a few hours of a DST
+ * change, and re-measuring at the corrected instant settles it. Wall clocks
+ * that DST skips or repeats are genuinely ambiguous — this resolves them
+ * consistently rather than throwing.
+ */
+export function zonedWallClockToInstant(wallClock: string, timeZone: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(wallClock)
+  if (!match) return null
+  const [, year, month, day, hour, minute] = match
+  const pseudoUtc = Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), 0)
+  try {
+    const firstPass = pseudoUtc - zoneOffsetMs(new Date(pseudoUtc), timeZone)
+    return new Date(pseudoUtc - zoneOffsetMs(new Date(firstPass), timeZone))
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Inverse of the above: renders an instant as the wall clock `timeZone` shows
+ * at that moment, in the "YYYY-MM-DDTHH:mm" form <input type="datetime-local">
+ * expects.
+ */
+export function instantToZonedWallClock(iso: string | null, timeZone: string): string {
+  if (!iso) return ''
+  const instant = new Date(iso)
+  if (Number.isNaN(instant.getTime())) return ''
+  try {
+    // Shifting by the offset makes the instant's UTC face read as the target
+    // zone's wall clock, so toISOString can just be sliced.
+    const shifted = new Date(instant.getTime() + zoneOffsetMs(instant, timeZone))
+    return shifted.toISOString().slice(0, 16)
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * A wall clock resolved in the event's zone, falling back to the browser's zone
+ * for events created before zones existed — which is exactly what those events
+ * already did, so their behaviour is unchanged.
+ */
+function wallClockToInstant(wallClock: string, timeZone: string | null): Date | null {
+  if (timeZone) return zonedWallClockToInstant(wallClock, timeZone)
+  const parsed = new Date(wallClock)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+/**
+ * "2:00 PM EDT" — the time at the venue with its zone, the way an invitation
+ * prints it, so every guest sees the same thing wherever they are. Events with
+ * no zone keep showing their raw stored time.
+ */
+export function formatEventTime(
+  eventDate: string | null,
+  eventTime: string | null,
+  timeZone: string | null
+): string {
+  if (!eventTime) return ''
+  if (!timeZone || !eventDate) return eventTime
+  const instant = zonedWallClockToInstant(`${eventDate}T${eventTime}`, timeZone)
+  if (!instant) return eventTime
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone, hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short',
+    }).format(instant)
+  } catch {
+    return eventTime
+  }
+}
+
+/** "America/Toronto · EDT", for the host-facing picker summary. */
+export function timezoneLabel(timeZone: string, at: Date = new Date()): string {
+  if (!timeZone) return ''
+  try {
+    const abbr = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'short' })
+      .formatToParts(at)
+      .find(p => p.type === 'timeZoneName')?.value
+    return abbr ? `${timeZone} · ${abbr}` : timeZone
+  } catch {
+    return timeZone
+  }
+}
+
 // ─── Feed visibility ────────────────────────────────────────────────────────
 
 export type FeedCloseMode = 'none' | '24h' | '48h' | '72h' | '7d' | '30d' | '90d' | 'custom'
@@ -67,20 +207,34 @@ const FEED_CLOSE_DURATIONS_MS: Partial<Record<FeedCloseMode, number>> = {
 
 // Resolves a feed_close_mode + the event's date/time (and an optional custom
 // timestamp) into the concrete feed_closes_at value stored on the event row.
+//
+// Every wall clock here is resolved in the *event's* zone. Resolving them in
+// the host's browser zone instead is what made a remotely-organised event's
+// feed open and close at the wrong moment.
 export function computeFeedClosesAt(
   eventDate: string | null,
   eventTime: string | null,
   closeMode: FeedCloseMode,
-  customDateTime: string | null
+  customDateTime: string | null,
+  timeZone: string | null
 ): string | null {
   if (closeMode === 'none') return null
-  if (closeMode === 'custom') return customDateTime ? new Date(customDateTime).toISOString() : null
+  if (closeMode === 'custom') {
+    if (!customDateTime) return null
+    return wallClockToInstant(customDateTime, timeZone)?.toISOString() ?? null
+  }
 
   const durationMs = FEED_CLOSE_DURATIONS_MS[closeMode]
   if (!durationMs || !eventDate) return null
-  const start = new Date(`${eventDate}T${eventTime || '00:00'}`)
-  if (Number.isNaN(start.getTime())) return null
+  const start = wallClockToInstant(`${eventDate}T${eventTime || '00:00'}`, timeZone)
+  if (!start) return null
   return new Date(start.getTime() + durationMs).toISOString()
+}
+
+/** feed_opens_at, resolved the same way. */
+export function computeFeedOpensAt(wallClock: string | null, timeZone: string | null): string | null {
+  if (!wallClock) return null
+  return wallClockToInstant(wallClock, timeZone)?.toISOString() ?? null
 }
 
 export type FeedStatus = 'not_open' | 'open' | 'closed'
