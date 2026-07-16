@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client'
 import { formatTimeAgo, formatEventDate, computeFeedClosesAt, FEED_CLOSE_OPTIONS, type FeedCloseMode } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { GreenLogo } from '@/components/landing/Logo'
+import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
 type ConfirmState = { message: string; onConfirm: () => void } | null
 
@@ -147,6 +148,7 @@ export default function EventDashboardPage() {
   const { eventId } = useParams()
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
+  const { isMobile } = useWindowWidth()
   const qrCanvasRef = useRef<HTMLCanvasElement>(null)
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [page, setPage] = useState(1)
@@ -427,23 +429,25 @@ export default function EventDashboardPage() {
             <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Description" rows={3} style={{ ...inputStyle, minHeight: 'unset', resize: 'none' }} />
             <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Location" style={inputStyle} />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Date</label>
-              <input
-                type="date"
-                value={editDate}
-                onChange={e => setEditDate(e.target.value)}
-                style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }}
-              />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Time</label>
-              <input
-                type="time"
-                value={editTime}
-                onChange={e => setEditTime(e.target.value)}
-                style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }}
-              />
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '0.625rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: isMobile ? undefined : 1, minWidth: 0 }}>
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Date</label>
+                <input
+                  type="date"
+                  value={editDate}
+                  onChange={e => setEditDate(e.target.value)}
+                  style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: isMobile ? undefined : 1, minWidth: 0 }}>
+                <label style={{ color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600 }}>Time</label>
+                <input
+                  type="time"
+                  value={editTime}
+                  onChange={e => setEditTime(e.target.value)}
+                  style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }}
+                />
+              </div>
             </div>
 
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
