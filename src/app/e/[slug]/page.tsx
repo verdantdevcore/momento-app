@@ -11,6 +11,7 @@ import { formatTimeAgo, formatEventDate, formatEventTime, getFeedStatus, countdo
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Footer } from '@/components/ui/Footer'
 import { OliveLogo } from '@/components/landing/Logo'
+import { FaceSearchSheet } from '@/components/event/FaceSearchSheet'
 
 type Event = {
   id: string
@@ -23,6 +24,7 @@ type Event = {
   timezone: string | null
   feed_opens_at: string | null
   feed_closes_at: string | null
+  face_search_enabled: boolean
 }
 
 type Media = {
@@ -64,6 +66,10 @@ export default function EventFeedPage() {
   const [feedHeight, setFeedHeight] = useState('100dvh')
   const [carouselIndexes, setCarouselIndexes] = useState<Record<string, number>>({})
   const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({})
+  const [faceSheetOpen, setFaceSheetOpen] = useState(false)
+  // null = not searched. An empty array is a real result ("no photos of you"),
+  // which has to render differently from "you haven't searched yet".
+  const [faceMatchIds, setFaceMatchIds] = useState<string[] | null>(null)
 
   const observerRefs = useRef<Map<string, IntersectionObserver>>(new Map())
   const headerRef = useRef<HTMLElement | null>(null)
@@ -83,7 +89,7 @@ export default function EventFeedPage() {
     async function fetchData() {
       const { data: eventData } = await supabase
         .from('events')
-        .select('id, title, slug, description, location, event_date, event_time, timezone, feed_opens_at, feed_closes_at')
+        .select('id, title, slug, description, location, event_date, event_time, timezone, feed_opens_at, feed_closes_at, face_search_enabled')
         .eq('slug', slug)
         .single()
 
@@ -210,7 +216,7 @@ export default function EventFeedPage() {
     setRefreshing(true)
     const { data: eventData } = await supabase
       .from('events')
-      .select('id, title, slug, description, location, event_date, event_time, timezone, feed_opens_at, feed_closes_at')
+      .select('id, title, slug, description, location, event_date, event_time, timezone, feed_opens_at, feed_closes_at, face_search_enabled')
       .eq('slug', slug)
       .single()
     if (eventData) {
@@ -240,9 +246,14 @@ export default function EventFeedPage() {
     new Set(media.flatMap(m => m.hashtags))
   ).filter(Boolean)
 
-  const filtered = activeTag
-    ? media.filter(m => m.hashtags.includes(activeTag))
-    : media
+  // The two filters compose rather than replace each other, so "#speeches" and
+  // "just me" narrows to your photos of the speeches.
+  const faceMatches = faceMatchIds ? new Set(faceMatchIds) : null
+  const filtered = media.filter(m => {
+    if (activeTag && !m.hashtags.includes(activeTag)) return false
+    if (faceMatches && !faceMatches.has(m.id)) return false
+    return true
+  })
 
   const feedCards = buildFeedCards(filtered)
 
@@ -403,12 +414,21 @@ export default function EventFeedPage() {
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </header>
 
-      {/* Hashtag category filter bar */}
-      {allTags.length > 0 && (
+      {/* Filter bar — hashtags, plus the face-search chip when the host has
+          turned it on. Renders for face search even with no hashtags yet. */}
+      {(allTags.length > 0 || event.face_search_enabled) && (
         <div
           ref={filterRef}
           style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.625rem 1rem', display: 'flex', gap: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}
         >
+          {event.face_search_enabled && (
+            <button
+              onClick={() => faceMatchIds ? setFaceMatchIds(null) : setFaceSheetOpen(true)}
+              style={{ height: '32px', paddingLeft: '0.875rem', paddingRight: '0.875rem', borderRadius: '2rem', border: '1px solid var(--border)', backgroundColor: faceMatchIds ? 'var(--accent)' : 'var(--bg-input)', color: faceMatchIds ? '#F7E7CE' : 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+            >
+              {faceMatchIds ? `✓ My photos (${faceMatchIds.length})` : '🤳 Find my photos'}
+            </button>
+          )}
           <button
             onClick={() => setActiveTag(null)}
             style={{ height: '32px', paddingLeft: '0.875rem', paddingRight: '0.875rem', borderRadius: '2rem', border: '1px solid var(--border)', backgroundColor: activeTag === null ? 'var(--accent)' : 'var(--bg-input)', color: activeTag === null ? '#F7E7CE' : 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
@@ -436,13 +456,19 @@ export default function EventFeedPage() {
       >
         {feedCards.length === 0 && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '2rem' }}>
-            <p style={{ fontSize: '2.5rem' }}>📷</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', textAlign: 'center' }}>
-              {activeTag ? `No uploads tagged #${activeTag} yet.` : 'No uploads yet. Be the first to share!'}
+            <p style={{ fontSize: '2.5rem' }}>{faceMatchIds ? '🤷' : '📷'}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', textAlign: 'center', maxWidth: '20rem', lineHeight: 1.6 }}>
+              {faceMatchIds
+                ? (activeTag
+                    ? `No photos of you tagged #${activeTag}.`
+                    : "We couldn't find any photos of you yet. Photos are scanned as they're uploaded, so check back later.")
+                : activeTag
+                  ? `No uploads tagged #${activeTag} yet.`
+                  : 'No uploads yet. Be the first to share!'}
             </p>
-            {activeTag && (
+            {(activeTag || faceMatchIds) && (
               <button
-                onClick={() => setActiveTag(null)}
+                onClick={() => { setActiveTag(null); setFaceMatchIds(null) }}
                 style={{ border: '1px solid var(--border)', borderRadius: '2rem', padding: '0.5rem 1rem', background: 'none', color: 'var(--text-muted)', fontSize: '0.825rem', cursor: 'pointer' }}
               >
                 Clear filter
@@ -625,6 +651,21 @@ export default function EventFeedPage() {
       >
         +
       </Link>
+
+      {faceSheetOpen && (
+        <FaceSearchSheet
+          slug={String(slug)}
+          onClose={() => setFaceSheetOpen(false)}
+          onResults={ids => {
+            setFaceMatchIds(ids)
+            setFaceSheetOpen(false)
+            // A stale hashtag filter on top of the results reads as "face
+            // search found nothing", so clear it and show the matches.
+            setActiveTag(null)
+            feedRef.current?.scrollTo({ top: 0 })
+          }}
+        />
+      )}
     </main>
   )
 }

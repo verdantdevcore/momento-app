@@ -111,6 +111,20 @@ export const avatarRatelimit = new Ratelimit({
   prefix: 'ratelimit:avatar-upload',
 })
 
+// Tighter than the upload limiters: face search is an unauthenticated endpoint
+// that costs money per call, and it is the one endpoint where a loose limit
+// would let someone bulk-test faces against an event's guest list.
+export const faceSearchRatelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(6, '10 m'),
+  analytics: false,
+  prefix: 'ratelimit:face-search',
+})
+
+// Rekognition rejects inline images above 5MB. The browser downscales before
+// sending, so anything near this is a client that skipped that step.
+export const MAX_SELFIE_SIZE_MB = 5
+
 export const MAX_AVATAR_SIZE_MB = 8
 
 export function classifyFile(mimeTypeRaw: string, fileNameRaw: string) {

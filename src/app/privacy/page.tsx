@@ -4,7 +4,7 @@ export const metadata = { title: "Privacy Policy | Momento App" };
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout title="Privacy Policy" lastUpdated="May 26, 2026">
+    <LegalLayout title="Privacy Policy" lastUpdated="July 17, 2026">
 
       <Para>
         Welcome to Momento App (&#34;Momento App&#34;, &#34;we&#34;, &#34;our&#34;, or &#34;us&#34;). Your privacy matters to
@@ -26,6 +26,7 @@ export default function PrivacyPage() {
           "Photos and videos uploaded to events",
           "Messages, comments, or communications within the platform",
           "Payment or billing details (if premium features are offered)",
+          "Face data, only for events where the host has turned on face search (see Section 4)",
         ]} />
 
         <SubHeading>Information Collected Automatically</SubHeading>
@@ -72,7 +73,48 @@ export default function PrivacyPage() {
         <Para>Users are responsible for sharing event links responsibly.</Para>
       </LegalSection>
 
-      <LegalSection title="4. Storage and Security">
+      <LegalSection title="4. Face Search">
+        <Para>
+          Face search is an optional feature that a host may turn on for an individual event. It is
+          off by default. When it is off, no photo in that event is scanned for faces and no face
+          data is created.
+        </Para>
+
+        <SubHeading>What happens when a host turns it on</SubHeading>
+        <Para>
+          Photos uploaded to that event are scanned for faces, and a numeric representation of each
+          detected face (a &#34;face template&#34;) is created and stored with our face recognition
+          provider, Amazon Web Services. Face templates are held separately per event and are never
+          matched across different events.
+        </Para>
+        <Para>
+          A guest may then upload a selfie to find photos of themselves. The selfie is used to
+          perform that one search and is then discarded — it is not stored, not added to the event
+          album, not used to train any model, and not shared.
+        </Para>
+
+        <SubHeading>Host responsibility</SubHeading>
+        <Para>
+          A host who turns face search on confirms that their guests know their photos will be
+          scanned this way and have agreed to it. Hosts are responsible for obtaining that consent
+          before enabling the feature.
+        </Para>
+
+        <SubHeading>Retention and deletion</SubHeading>
+        <BulletList items={[
+          "Face data is deleted when the host turns face search off for the event",
+          "Face data is deleted when the event is deleted",
+          "Face data for a photo is deleted when that photo is deleted",
+          "Face data is deleted when the host's account is purged",
+        ]} />
+        <Para>
+          You may ask us to delete face data relating to you at any time using the contact details
+          below, whether or not you are the host. We do not sell face data, use it for advertising,
+          or use it to train models.
+        </Para>
+      </LegalSection>
+
+      <LegalSection title="5. Storage and Security">
         <Para>
           Uploaded content is securely stored using trusted cloud infrastructure providers, including
           Cloudinary and Amazon Web Services S3.
@@ -91,7 +133,7 @@ export default function PrivacyPage() {
         </Para>
       </LegalSection>
 
-      <LegalSection title="5. Cookies and Analytics">
+      <LegalSection title="6. Cookies and Analytics">
         <Para>We may use cookies and analytics tools to:</Para>
         <BulletList items={[
           "Keep users signed in",
@@ -106,7 +148,7 @@ export default function PrivacyPage() {
         </Para>
       </LegalSection>
 
-      <LegalSection title="6. Data Retention">
+      <LegalSection title="7. Data Retention">
         <Para>We retain information only as long as necessary to:</Para>
         <BulletList items={[
           "Provide services",
@@ -119,7 +161,7 @@ export default function PrivacyPage() {
         </Para>
       </LegalSection>
 
-      <LegalSection title="7. Children's Privacy">
+      <LegalSection title="8. Children's Privacy">
         <Para>
           Momento App is not intended for children under 13 years old (or the minimum legal age in
           your jurisdiction). We do not knowingly collect personal information from children without
@@ -127,7 +169,7 @@ export default function PrivacyPage() {
         </Para>
       </LegalSection>
 
-      <LegalSection title="8. Third-Party Services">
+      <LegalSection title="9. Third-Party Services">
         <Para>
           Momento App may integrate with third-party services for hosting, analytics, authentication,
           communications, and payments. These providers may process information according to their
@@ -135,7 +177,7 @@ export default function PrivacyPage() {
         </Para>
       </LegalSection>
 
-      <LegalSection title="9. Your Rights">
+      <LegalSection title="10. Your Rights">
         <Para>Depending on your jurisdiction, you may have rights to:</Para>
         <BulletList items={[
           "Access your personal data",
@@ -148,14 +190,14 @@ export default function PrivacyPage() {
         <Para>Requests can be submitted through our support contact.</Para>
       </LegalSection>
 
-      <LegalSection title="10. Changes to This Policy">
+      <LegalSection title="11. Changes to This Policy">
         <Para>
           We may update this Privacy Policy periodically. Continued use of Momento App after
           updates constitutes acceptance of the revised policy.
         </Para>
       </LegalSection>
 
-      <LegalSection title="11. Contact Us">
+      <LegalSection title="12. Contact Us">
         <Para>For privacy-related questions or requests, please contact:</Para>
         <Para>
           Momento App Support<br />

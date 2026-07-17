@@ -17,7 +17,14 @@ import {
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
-type ConfirmState = { message: string; onConfirm: () => void } | null
+// confirmLabel/tone default to the destructive case, which is what every
+// caller but the face-search toggle wants.
+type ConfirmState = {
+  message: string
+  onConfirm: () => void
+  confirmLabel?: string
+  tone?: 'danger' | 'neutral'
+} | null
 
 function ConfirmModal({ state, onClose }: { state: ConfirmState; onClose: () => void }) {
   if (!state) return null
@@ -43,7 +50,9 @@ function ConfirmModal({ state, onClose }: { state: ConfirmState; onClose: () => 
           boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
         }}
       >
-        <p style={{ color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+        {/* pre-line so a message can use a blank line to set its warning apart
+            from the question it's attached to. */}
+        <p style={{ color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.6, margin: 0, fontWeight: 500, whiteSpace: 'pre-line' }}>
           {state.message}
         </p>
         <div style={{ display: 'flex', gap: '0.625rem' }}>
@@ -55,9 +64,14 @@ function ConfirmModal({ state, onClose }: { state: ConfirmState; onClose: () => 
           </button>
           <button
             onClick={() => { state.onConfirm(); onClose() }}
-            style={{ flex: 1, border: '1px solid var(--danger-border)', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 600, color: 'var(--danger)', background: 'none', cursor: 'pointer', fontSize: '0.9rem', minHeight: '48px' }}
+            style={{
+              flex: 1, borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 600,
+              background: 'none', cursor: 'pointer', fontSize: '0.9rem', minHeight: '48px',
+              border: `1px solid ${state.tone === 'neutral' ? 'var(--border)' : 'var(--danger-border)'}`,
+              color: state.tone === 'neutral' ? 'var(--text-primary)' : 'var(--danger)',
+            }}
           >
-            Delete
+            {state.confirmLabel ?? 'Delete'}
           </button>
         </div>
       </div>
@@ -111,6 +125,8 @@ type Event = {
   feed_opens_at: string | null
   feed_close_mode: FeedCloseMode
   feed_closes_at: string | null
+  face_search_enabled: boolean
+  face_search_attested_at: string | null
 }
 
 // Superseded by instantToZonedWallClock, which renders the stored instant in
@@ -177,6 +193,7 @@ export default function EventDashboardPage() {
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null)
   const [confirmModal, setConfirmModal] = useState<ConfirmState>(null)
   const [errorToast, setErrorToast] = useState<string | null>(null)
+  const [faceSaving, setFaceSaving] = useState(false)
   const closeConfirm = useCallback(() => setConfirmModal(null), [])
 
   const appUrl = (
@@ -273,6 +290,44 @@ export default function EventDashboardPage() {
       })
       .eq('id', event.id).select().single()
     if (!error && data) { setEvent(data); setEditing(false) }
+  }
+
+  // Both directions go through a confirm step: turning it on is where the host
+  // attests to consent, and turning it off destroys an index they may not
+  // realise has to be rebuilt from scratch.
+  function handleToggleFaceSearch() {
+    if (!event) return
+    const turningOn = !event.face_search_enabled
+
+    setConfirmModal({
+      confirmLabel: turningOn ? 'Turn on' : 'Turn off',
+      tone: turningOn ? 'neutral' : 'danger',
+      message: turningOn
+        ? `Turn on face search for "${event.title}"? Guests will be able to upload a selfie to find photos of themselves. This scans every photo in this event for faces.\n\nOnly turn this on if your guests know and agree that their photos will be scanned this way. By continuing you confirm you have their consent.`
+        : `Turn off face search for "${event.title}"? The face data for this event is deleted immediately. Turning it back on later re-scans every photo from scratch.`,
+      onConfirm: async () => {
+        setFaceSaving(true)
+        try {
+          const res = await fetch('/api/face/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eventId: event.id, enabled: turningOn, attested: turningOn }),
+          })
+          const data = await res.json()
+          if (!res.ok) throw new Error(data.error ?? 'Could not update face search')
+
+          setEvent(prev => prev && ({
+            ...prev,
+            face_search_enabled: data.enabled,
+            face_search_attested_at: data.enabled ? new Date().toISOString() : null,
+          }))
+        } catch (err) {
+          setErrorToast(err instanceof Error ? err.message : 'Could not update face search. Please try again.')
+        } finally {
+          setFaceSaving(false)
+        }
+      },
+    })
   }
 
   function handleDeleteEvent() {
@@ -544,6 +599,43 @@ export default function EventDashboardPage() {
             <button onClick={handleDeleteEvent} disabled={deleting} style={{ flex: 1, border: '1px solid #7f1d1d', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 600, color: '#ef4444', background: 'none', cursor: 'pointer', fontSize: '1rem', minHeight: '52px', opacity: deleting ? 0.4 : 1 }}>
               {deleting ? 'Deleting...' : 'Delete event'}
             </button>
+          </div>
+        )}
+
+        {/* Face search */}
+        {!editing && (
+          <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', border: '1px solid var(--border)', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, fontSize: '0.95rem' }}>
+                  Face search
+                </p>
+                <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0', fontSize: '0.825rem', lineHeight: 1.5 }}>
+                  Let guests upload a selfie to find every photo they&apos;re in.
+                </p>
+              </div>
+              <button
+                onClick={handleToggleFaceSearch}
+                disabled={faceSaving}
+                aria-pressed={event.face_search_enabled}
+                style={{
+                  flexShrink: 0, minHeight: '44px', padding: '0 1rem',
+                  borderRadius: '2rem', border: '1px solid var(--border)',
+                  backgroundColor: event.face_search_enabled ? 'var(--accent)' : 'var(--bg-input)',
+                  color: event.face_search_enabled ? '#F7E7CE' : 'var(--text-muted)',
+                  fontSize: '0.825rem', fontWeight: 600, cursor: faceSaving ? 'default' : 'pointer',
+                  opacity: faceSaving ? 0.5 : 1, whiteSpace: 'nowrap',
+                }}
+              >
+                {faceSaving ? 'Saving…' : event.face_search_enabled ? 'On' : 'Off'}
+              </button>
+            </div>
+
+            <p style={{ color: 'var(--text-dim)', margin: 0, fontSize: '0.75rem', lineHeight: 1.5 }}>
+              {event.face_search_enabled
+                ? 'Guests see a notice explaining this before they search. Face data is deleted when you turn this off or delete the event.'
+                : 'Off by default. Only turn this on if your guests know their photos will be scanned for faces — you’ll be asked to confirm you have their consent.'}
+            </p>
           </div>
         )}
 
