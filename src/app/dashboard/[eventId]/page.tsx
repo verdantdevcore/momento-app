@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import nextDynamic from 'next/dynamic'
 import Link from 'next/link'
 import Image from 'next/image'
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react'
@@ -16,6 +17,9 @@ import {
 } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
+
+// Lazy-loaded so jsPDF and the SVG templates only ship when a host opens the pack.
+const QrPackModal = nextDynamic(() => import('@/components/dashboard/qr-pack/QrPackModal'), { ssr: false })
 
 type ConfirmState = { message: string; onConfirm: () => void } | null
 
@@ -159,6 +163,7 @@ export default function EventDashboardPage() {
   const [copied, setCopied] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
+  const [showPack, setShowPack] = useState(false)
   const [zipping, setZipping] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
@@ -359,6 +364,9 @@ export default function EventDashboardPage() {
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', width: '100%' }}>
       <ConfirmModal state={confirmModal} onClose={closeConfirm} />
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+      {showPack && event && (
+        <QrPackModal event={event} qrValue={eventUrl} onClose={() => setShowPack(false)} />
+      )}
       <header className="chrome-surface" style={{ borderBottom: '1px solid var(--border)', padding: '0.625rem 0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'sticky', top: 0, zIndex: 10 }}>
         <Link href="/dashboard" style={{ ...pillButton, height: '36px', paddingLeft: '0.75rem', paddingRight: '0.75rem', fontSize: '0.825rem', flexShrink: 0 }}>← Back</Link>
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
@@ -400,6 +408,10 @@ export default function EventDashboardPage() {
 
           <button onClick={() => setShowQR(v => !v)} style={{ width: '100%', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.875rem', fontSize: '0.875rem', color: 'var(--text-muted)', background: 'none', cursor: 'pointer', minHeight: '52px', fontWeight: 600 }}>
             {showQR ? 'Hide QR code' : 'Show QR code'}
+          </button>
+
+          <button onClick={() => setShowPack(true)} style={{ width: '100%', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.875rem', fontSize: '0.875rem', color: 'var(--text-muted)', background: 'none', cursor: 'pointer', minHeight: '52px', fontWeight: 600 }}>
+            ✦ Create print pack
           </button>
 
           {showQR && (
