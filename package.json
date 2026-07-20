@@ -11,7 +11,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@aws-sdk/client-rekognition": "^3.1089.0",
+    "@azure-rest/ai-vision-face": "1.0.0-beta.3",
+    "@azure/core-auth": "^1.9.0",
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.101.1",

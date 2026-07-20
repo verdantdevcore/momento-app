@@ -10,11 +10,11 @@ const adminClient = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
 
-// Rekognition takes image bytes inline and caps them at 5MB. Capping the long
-// edge at 1600px keeps every photo well under that while staying far above the
-// ~80px-per-face floor it needs to match reliably. f_jpg normalises the HEIC
-// that iPhones upload, which Rekognition does not read.
-const REKOGNITION_DERIVATIVE = 'c_limit,w_1600,q_auto:good,f_jpg'
+// Azure Face takes image bytes inline and caps them at 6MB. Capping the long
+// edge at 1600px keeps every photo well under that while staying far above
+// the 200x200px Azure recommends per face for reliable recognition. f_jpg
+// normalises the HEIC that iPhones upload, which Azure does not read.
+const FACE_API_DERIVATIVE = 'c_limit,w_1600,q_auto:good,f_jpg'
 
 // The embedded events row comes back as an object for an !inner join on a
 // to-one relation, which the generated types don't narrow to.
@@ -28,7 +28,7 @@ type MediaWithEvent = {
 }
 
 /**
- * Indexes one uploaded photo's faces into its event's Rekognition collection.
+ * Indexes one uploaded photo's faces into its event's Azure face list.
  * Queued by /api/upload via QStash (see enqueueFaceIndex in lib/qstash.ts).
  *
  * Returns 200 for every "this photo should not be indexed" outcome — a feed
@@ -42,7 +42,7 @@ async function handler(request: Request) {
   }
 
   if (!facesConfigured()) {
-    console.warn('[face-index] AWS not configured — skipping', mediaId)
+    console.warn('[face-index] Azure Face not configured — skipping', mediaId)
     return NextResponse.json({ skipped: 'faces not configured' })
   }
 
@@ -71,7 +71,7 @@ async function handler(request: Request) {
     return NextResponse.json({ skipped: 'already indexed' })
   }
 
-  const imageUrl = derivedUrl(media.url, REKOGNITION_DERIVATIVE)
+  const imageUrl = derivedUrl(media.url, FACE_API_DERIVATIVE)
   if (!imageUrl) {
     return NextResponse.json({ skipped: 'not a cloudinary url' })
   }
@@ -97,17 +97,17 @@ async function handler(request: Request) {
   if (faces.length > 0) {
     const { error: insertErr } = await adminClient.from('media_faces').insert(
       faces.map(face => ({
-        media_id:            media.id,
-        event_id:            media.event_id,
-        rekognition_face_id: face.faceId,
-        bounding_box:        face.boundingBox,
-        confidence:          face.confidence,
+        media_id:          media.id,
+        event_id:          media.event_id,
+        persisted_face_id: face.faceId,
+        bounding_box:      face.boundingBox,
+        confidence:        face.confidence,
       }))
     )
     // Leave face_indexed_at null and let QStash retry: the faces are in the
-    // collection but nothing maps them back to this photo, so a search would
-    // match and then resolve to nothing. The unique constraint on
-    // (event_id, rekognition_face_id) absorbs the duplicate insert on retry.
+    // list but nothing maps them back to this photo, so a search would match
+    // and then resolve to nothing. The unique constraint on
+    // (event_id, persisted_face_id) absorbs the duplicate insert on retry.
     if (insertErr) {
       console.error('[face-index] face row insert failed:', { mediaId, error: insertErr.message })
       return NextResponse.json({ error: 'Failed to record faces' }, { status: 500 })

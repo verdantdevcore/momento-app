@@ -59,8 +59,9 @@ describe('DELETE /api/delete-media', () => {
   it('deletes from Cloudinary and DB, then audits, for the owner', async () => {
     adminClient.from
       .mockReturnValueOnce(
-        makeChain({ data: { id: 'm1', url: CLOUD_URL, type: 'image', events: { host_id: 'owner-1' } } }),
+        makeChain({ data: { id: 'm1', url: CLOUD_URL, type: 'image', events: { host_id: 'owner-1', slug: 'e' } } }),
       )
+      .mockReturnValueOnce(makeChain({ data: [], error: null }))
       .mockReturnValueOnce(makeChain({ data: null, error: null }))
     const res = await DELETE(req({ mediaId: 'm1' }))
     expect(res.status).toBe(200)
@@ -74,8 +75,9 @@ describe('DELETE /api/delete-media', () => {
     destroy.mockRejectedValue(new Error('cdn down'))
     adminClient.from
       .mockReturnValueOnce(
-        makeChain({ data: { id: 'm1', url: CLOUD_URL, type: 'image', events: { host_id: 'owner-1' } } }),
+        makeChain({ data: { id: 'm1', url: CLOUD_URL, type: 'image', events: { host_id: 'owner-1', slug: 'e' } } }),
       )
+      .mockReturnValueOnce(makeChain({ data: [], error: null }))
       .mockReturnValueOnce(makeChain({ data: null, error: null }))
     const res = await DELETE(req({ mediaId: 'm1' }))
     expect(res.status).toBe(200)
@@ -87,8 +89,9 @@ describe('DELETE /api/delete-media', () => {
   it('500 when the DB delete errors', async () => {
     adminClient.from
       .mockReturnValueOnce(
-        makeChain({ data: { id: 'm1', url: CLOUD_URL, type: 'image', events: { host_id: 'owner-1' } } }),
+        makeChain({ data: { id: 'm1', url: CLOUD_URL, type: 'image', events: { host_id: 'owner-1', slug: 'e' } } }),
       )
+      .mockReturnValueOnce(makeChain({ data: [], error: null }))
       .mockReturnValueOnce(makeChain({ data: null, error: { message: 'db fail' } }))
     expect((await DELETE(req({ mediaId: 'm1' }))).status).toBe(500)
   })

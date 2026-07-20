@@ -32,10 +32,12 @@ export async function scheduleOnboardingChecks(hostId: string) {
 /**
  * Queues face indexing for one freshly-uploaded photo.
  *
- * Off the upload's critical path deliberately: Rekognition adds a second or two
- * per photo, and a guest uploading twenty photos at a reception should not wait
- * for any of it. Failure here is swallowed — an unindexed photo is missing from
- * face search results, which is a far better outcome than a failed upload.
+ * Off the upload's critical path deliberately: Azure Face indexes a photo with
+ * one Detect call plus one Add Face call per face found, which can add up to
+ * several seconds for a busy group shot — and a guest uploading twenty photos
+ * at a reception should not wait for any of it. Failure here is swallowed — an
+ * unindexed photo is missing from face search results, which is a far better
+ * outcome than a failed upload.
  */
 export async function enqueueFaceIndex(mediaId: string) {
   if (!qstash) {

@@ -121,7 +121,7 @@ export const faceSearchRatelimit = new Ratelimit({
   prefix: 'ratelimit:face-search',
 })
 
-// Rekognition rejects inline images above 5MB. The browser downscales before
+// Azure Face rejects inline images above 6MB. The browser downscales before
 // sending, so anything near this is a client that skipped that step.
 export const MAX_SELFIE_SIZE_MB = 5
 

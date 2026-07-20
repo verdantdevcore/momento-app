@@ -15,10 +15,10 @@ const MAX_EDGE = 1024
 const JPEG_QUALITY = 0.85
 
 /**
- * Shrinks the selfie before it leaves the device. Rekognition needs roughly 80
- * pixels across a face, so 1024 on the long edge is generous — and a modern
- * phone photo sent raw would be several MB of upload the guest waits on for no
- * gain.
+ * Shrinks the selfie before it leaves the device. Azure recommends a face be
+ * at least 200x200 pixels for reliable recognition, so 1024 on the long edge
+ * is generous — and a modern phone photo sent raw would be several MB of
+ * upload the guest waits on for no gain.
  */
 async function downscaleToJpegDataUrl(file: File): Promise<string> {
   // from-image so an EXIF-rotated phone photo is uploaded the right way up.

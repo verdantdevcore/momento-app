@@ -79,23 +79,23 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    // 2. Drop this photo's faces from the event's Rekognition collection.
+    // 2. Drop this photo's faces from the event's Azure face list.
     //    Must happen before the media row goes, since media_faces cascades off
     //    it and those rows are the only record of which faces came from this
-    //    photo — losing them would strand the face templates in the collection
-    //    with nothing left to delete them by.
+    //    photo — losing them would strand the face templates in the list with
+    //    nothing left to delete them by.
     let facesDeleted = 0
     const { data: faceRows } = await adminClient
       .from('media_faces')
-      .select('rekognition_face_id')
+      .select('persisted_face_id')
       .eq('media_id', mediaId)
 
     if (faceRows && faceRows.length > 0) {
       try {
-        await deleteFaces(eventCollection(media.events.slug), faceRows.map(f => f.rekognition_face_id))
+        await deleteFaces(eventCollection(media.events.slug), faceRows.map(f => f.persisted_face_id))
         facesDeleted = faceRows.length
       } catch (faceErr) {
-        console.error('[delete-media] Rekognition face delete failed:', faceErr)
+        console.error('[delete-media] Azure face delete failed:', faceErr)
         await logAudit({
           event_type: 'face_delete_failed',
           user_id: user.id,

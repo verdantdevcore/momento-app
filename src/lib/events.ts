@@ -16,8 +16,8 @@ export type EventPurgeResult = AssetDeletionResult & { faceCollectionRemoved: bo
  * Order matters: the media rows are the only record of where an event's assets
  * live, and deleting the event cascades them away — so the assets must go while
  * their URLs are still readable, or they are orphaned in Cloudinary forever.
- * The media_faces rows cascade with them, which is why the Rekognition
- * collection is dropped wholesale here rather than face by face.
+ * The media_faces rows cascade with them, which is why the Azure face list is
+ * dropped wholesale here rather than face by face.
  *
  * Shared by the host/admin delete route and the account-purge cron so both
  * paths tear down identically.
