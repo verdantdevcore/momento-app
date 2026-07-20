@@ -48,9 +48,10 @@ export async function sendNewHostSignupNotice(host: { email: string; fullName: s
   )
 }
 
-export async function sendHostReminderEmail(host: { email: string; fullName: string | null }, checkpoint: '24h' | '72h' | '7d') {
-  const copyByCheckpoint: Record<'24h' | '72h' | '7d', { subject: string; body: string }> = {
+export async function sendHostReminderEmail(host: { email: string; fullName: string | null }, checkpoint: '24h' | '48h' | '72h' | '7d') {
+  const copyByCheckpoint: Record<'24h' | '48h' | '72h' | '7d', { subject: string; body: string }> = {
     '24h': { subject: 'Create your first event on Momento', body: "You signed up yesterday but haven't created an event yet. It only takes a minute to get started." },
+    '48h': { subject: 'Your first event is just a couple minutes away', body: "It's been two days since you joined Momento. Set up your first event and start collecting photos from your guests." },
     '72h': { subject: 'Still thinking about your first event?', body: "It's been a few days since you joined Momento. Ready to set up your first event and start collecting photos from your guests?" },
     '7d': { subject: "We're here when you're ready", body: "It's been a week since you signed up. If you need a hand getting your first event set up, just reply to this email." },
   }

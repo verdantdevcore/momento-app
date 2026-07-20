@@ -10,8 +10,9 @@ const adminClient = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
 
-const REMINDER_COLUMN: Record<OnboardingCheckpoint, 'reminder_24h_sent_at' | 'reminder_72h_sent_at' | 'reminder_7d_sent_at'> = {
+const REMINDER_COLUMN: Record<OnboardingCheckpoint, 'reminder_24h_sent_at' | 'reminder_48h_sent_at' | 'reminder_72h_sent_at' | 'reminder_7d_sent_at'> = {
   '24h': 'reminder_24h_sent_at',
+  '48h': 'reminder_48h_sent_at',
   '72h': 'reminder_72h_sent_at',
   '7d': 'reminder_7d_sent_at',
 }
@@ -42,7 +43,7 @@ async function handler(request: Request) {
   const [{ data: hostRow }, { data: authUser }] = await Promise.all([
     adminClient
       .from('hosts')
-      .select('full_name, reminder_24h_sent_at, reminder_72h_sent_at, reminder_7d_sent_at, admin_followup_72h_sent_at, admin_followup_7d_sent_at')
+      .select('full_name, reminder_24h_sent_at, reminder_48h_sent_at, reminder_72h_sent_at, reminder_7d_sent_at, admin_followup_72h_sent_at, admin_followup_7d_sent_at')
       .eq('id', hostId)
       .single(),
     adminClient.auth.admin.getUserById(hostId),

@@ -2,10 +2,11 @@ import { Client } from '@upstash/qstash'
 
 const qstash = process.env.QSTASH_TOKEN ? new Client({ token: process.env.QSTASH_TOKEN }) : null
 
-export type OnboardingCheckpoint = '24h' | '72h' | '7d'
+export type OnboardingCheckpoint = '24h' | '48h' | '72h' | '7d'
 
 const DELAY_SECONDS: Record<OnboardingCheckpoint, number> = {
   '24h': 24 * 60 * 60,
+  '48h': 48 * 60 * 60,
   '72h': 72 * 60 * 60,
   '7d': 7 * 24 * 60 * 60,
 }
