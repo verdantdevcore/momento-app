@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
 import { getFeedStatus } from '@/lib/utils'
 import { cloudinary } from '@/lib/cloudinary'
+import { enqueueFaceIndex } from '@/lib/qstash'
 import {
   isOriginAllowed,
   isHostInactive,
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     const { data: eventRow } = await adminClient
       .from('events')
-      .select('host_id, feed_opens_at, feed_closes_at')
+      .select('host_id, feed_opens_at, feed_closes_at, face_search_enabled')
       .eq('id', eventId)
       .single()
 
@@ -137,6 +138,13 @@ export async function POST(request: NextRequest) {
         metadata: { event_id: eventId, error: dbErr.message },
       })
       return NextResponse.json({ error: 'Failed to save upload record' }, { status: 500 })
+    }
+
+    // Queue face indexing for photos on events with face search turned on. The
+    // job re-checks both conditions, so this is an optimisation to avoid
+    // queueing work that would only no-op — not the enforcement point.
+    if (resourceType === 'image' && eventRow.face_search_enabled) {
+      await enqueueFaceIndex(mediaRecord.id)
     }
 
     await logAudit({

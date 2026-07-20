@@ -43,6 +43,20 @@ export function extractPublicId(url: string): string | null {
   }
 }
 
+/**
+ * Inserts a transformation into a delivery URL, e.g.
+ *   .../upload/v123/Momento/events/x/a.jpg
+ *     -> .../upload/c_limit,w_1600/v123/Momento/events/x/a.jpg
+ *
+ * Returns null for a URL that isn't a Cloudinary delivery URL.
+ */
+export function derivedUrl(url: string, transformation: string): string | null {
+  const marker = '/upload/'
+  const idx = url.indexOf(marker)
+  if (idx === -1) return null
+  return url.slice(0, idx + marker.length) + transformation + '/' + url.slice(idx + marker.length)
+}
+
 type MediaRow = { url: string; type: string }
 
 export type AssetDeletionResult = {

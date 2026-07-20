@@ -27,3 +27,62 @@ export async function scheduleOnboardingChecks(hostId: string) {
   )
   console.log('[qstash] scheduled onboarding checks for', hostId, results)
 }
+
+/**
+ * Queues face indexing for one freshly-uploaded photo.
+ *
+ * Off the upload's critical path deliberately: Rekognition adds a second or two
+ * per photo, and a guest uploading twenty photos at a reception should not wait
+ * for any of it. Failure here is swallowed — an unindexed photo is missing from
+ * face search results, which is a far better outcome than a failed upload.
+ */
+export async function enqueueFaceIndex(mediaId: string) {
+  if (!qstash) {
+    console.warn('[qstash] QSTASH_TOKEN not set — skipping face indexing for', mediaId)
+    return
+  }
+  try {
+    const res = await qstash.publishJSON({
+      url:  faceIndexUrl(),
+      body: { mediaId },
+      // The job is idempotent via media.face_indexed_at, so retries are safe.
+      retries: 3,
+    })
+    console.log('[qstash] queued face index', { mediaId, messageId: res.messageId })
+  } catch (err) {
+    console.error('[qstash] failed to queue face index:', { mediaId, err })
+  }
+}
+
+/**
+ * Queues face indexing for a backlog of photos — a host turning face search on
+ * after the event, when every photo is already uploaded, which is the common
+ * case rather than the edge case.
+ *
+ * Returns the number queued. Best-effort like the single-photo version: a
+ * chunk that fails to queue leaves those photos unindexed, and the host can
+ * re-run it by toggling again.
+ */
+export async function enqueueFaceIndexBatch(mediaIds: string[]): Promise<number> {
+  if (!qstash) {
+    console.warn('[qstash] QSTASH_TOKEN not set — skipping face index backfill')
+    return 0
+  }
+  const url = faceIndexUrl()
+  let queued = 0
+  // QStash caps a batch at 100 messages.
+  for (let i = 0; i < mediaIds.length; i += 100) {
+    const chunk = mediaIds.slice(i, i + 100)
+    try {
+      await qstash.batchJSON(chunk.map(mediaId => ({ url, body: { mediaId }, retries: 3 })))
+      queued += chunk.length
+    } catch (err) {
+      console.error('[qstash] face index batch failed:', { count: chunk.length, err })
+    }
+  }
+  return queued
+}
+
+function faceIndexUrl(): string {
+  return `${process.env.NEXT_PUBLIC_APP_URL}/api/face/index`
+}
