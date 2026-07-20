@@ -31,7 +31,7 @@ function req(body: unknown) {
 beforeEach(() => {
   vi.clearAllMocks()
   serverAuth.getUser.mockResolvedValue({ data: { user: { id: 'owner-1' } } })
-  vi.mocked(purgeEvent).mockResolvedValue({ deleted: 3, failed: 0, folderRemoved: true })
+  vi.mocked(purgeEvent).mockResolvedValue({ deleted: 3, failed: 0, folderRemoved: true, faceCollectionRemoved: true })
 })
 
 describe('DELETE /api/delete-event', () => {

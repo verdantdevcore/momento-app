@@ -18,6 +18,9 @@ import {
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
 
+// Lazy-loaded so jsPDF and the SVG templates only ship when a host opens the pack.
+const QrPackModal = nextDynamic(() => import('@/components/dashboard/qr-pack/QrPackModal'), { ssr: false })
+
 // confirmLabel/tone default to the destructive case, which is what every
 // caller but the face-search toggle wants.
 type ConfirmState = {
