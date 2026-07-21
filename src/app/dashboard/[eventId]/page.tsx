@@ -151,6 +151,22 @@ type Media = {
   created_at: string
 }
 
+type PhotoRequest = {
+  id: string
+  prompt: string
+  createdAt: string
+}
+
+// Starting points a host can tap instead of typing — still editable before
+// sending, and custom text works exactly the same way as any of these.
+const PRESET_PHOTO_PROMPTS = [
+  'Need more dance floor photos',
+  'Show us the toast & speeches',
+  'Get a big group photo',
+  'Snap the food & drinks table',
+  'Capture the decor & details',
+]
+
 const pillButton: React.CSSProperties = {
   height: '44px', paddingLeft: '1rem', paddingRight: '1rem',
   borderRadius: '0.75rem', border: '1px solid var(--border)',
@@ -204,6 +220,10 @@ export default function EventDashboardPage() {
   const [errorToast, setErrorToast] = useState<string | null>(null)
   const [faceSaving, setFaceSaving] = useState(false)
   const [recapTriggering, setRecapTriggering] = useState(false)
+  const [photoRequests, setPhotoRequests] = useState<PhotoRequest[]>([])
+  const [newPromptText, setNewPromptText] = useState('')
+  const [sendingPrompt, setSendingPrompt] = useState(false)
+  const [dismissingRequestId, setDismissingRequestId] = useState<string | null>(null)
   const closeConfirm = useCallback(() => setConfirmModal(null), [])
 
   const appUrl = (
@@ -222,6 +242,15 @@ export default function EventDashboardPage() {
       setEvent(eventData)
       const { data: mediaData } = await supabase.from('media').select('*').eq('event_id', eventId).order('created_at', { ascending: false })
       if (mediaData) setMedia(mediaData)
+
+      // event_photo_requests has no anon/authenticated RLS policies (service
+      // role only), so the dashboard reads it through the API like a guest
+      // would rather than querying the table directly.
+      const res = await fetch(`/api/photo-requests?eventId=${eventId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setPhotoRequests(data.requests ?? [])
+      }
     }
     fetchEvent()
 
@@ -272,6 +301,48 @@ export default function EventDashboardPage() {
       setErrorToast(err instanceof Error ? err.message : 'Could not start recap generation. Please try again.')
     } finally {
       setRecapTriggering(false)
+    }
+  }
+
+  async function handleSendPhotoRequest(prompt: string) {
+    const trimmed = prompt.trim()
+    if (!event || !trimmed || sendingPrompt) return
+    setSendingPrompt(true)
+    try {
+      const res = await fetch('/api/photo-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: event.id, prompt: trimmed }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Could not send that request')
+      setPhotoRequests(prev => [data.request, ...prev])
+      setNewPromptText('')
+    } catch (err) {
+      setErrorToast(err instanceof Error ? err.message : 'Could not send that request. Please try again.')
+    } finally {
+      setSendingPrompt(false)
+    }
+  }
+
+  async function handleDismissPhotoRequest(requestId: string) {
+    if (!event || dismissingRequestId) return
+    setDismissingRequestId(requestId)
+    try {
+      const res = await fetch('/api/photo-requests/dismiss', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: event.id, requestId }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? 'Could not clear that request')
+      }
+      setPhotoRequests(prev => prev.filter(r => r.id !== requestId))
+    } catch (err) {
+      setErrorToast(err instanceof Error ? err.message : 'Could not clear that request. Please try again.')
+    } finally {
+      setDismissingRequestId(null)
     }
   }
 
@@ -697,6 +768,70 @@ export default function EventDashboardPage() {
                 ? 'Guests see a notice explaining this before they search. Face data is deleted when you turn this off or delete the event.'
                 : 'Off by default. Only turn this on if your guests know their photos will be scanned for faces — you’ll be asked to confirm you have their consent.'}
             </p>
+          </div>
+        )}
+
+        {/* Guest photo requests */}
+        {!editing && (
+          <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', border: '1px solid var(--border)', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, fontSize: '0.95rem' }}>
+                Guest photo requests
+              </p>
+              <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0', fontSize: '0.825rem', lineHeight: 1.5 }}>
+                Nudge guests toward a shot you&apos;re missing — they&apos;ll see it at the top of the feed.
+              </p>
+            </div>
+
+            {photoRequests.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {photoRequests.map(r => (
+                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '0.625rem 0.875rem' }}>
+                    <span style={{ color: 'var(--text-primary)', fontSize: '0.85rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      📸 {r.prompt}
+                    </span>
+                    <button
+                      onClick={() => handleDismissPhotoRequest(r.id)}
+                      disabled={dismissingRequestId === r.id}
+                      style={{ flexShrink: 0, border: '1px solid var(--border)', borderRadius: '2rem', padding: '0.375rem 0.75rem', background: 'none', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, cursor: dismissingRequestId === r.id ? 'default' : 'pointer', opacity: dismissingRequestId === r.id ? 0.5 : 1 }}
+                    >
+                      {dismissingRequestId === r.id ? 'Clearing…' : 'Done'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.375rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              {PRESET_PHOTO_PROMPTS.map(preset => (
+                <button
+                  key={preset}
+                  onClick={() => handleSendPhotoRequest(preset)}
+                  disabled={sendingPrompt}
+                  style={{ flexShrink: 0, whiteSpace: 'nowrap', border: '1px solid var(--border)', borderRadius: '2rem', padding: '0.5rem 0.875rem', background: 'none', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600, cursor: sendingPrompt ? 'default' : 'pointer', opacity: sendingPrompt ? 0.5 : 1 }}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                value={newPromptText}
+                onChange={e => setNewPromptText(e.target.value.slice(0, 120))}
+                onKeyDown={e => { if (e.key === 'Enter') handleSendPhotoRequest(newPromptText) }}
+                placeholder="Or write your own…"
+                style={{ ...inputStyle, minHeight: '44px', padding: '0.625rem 0.875rem', fontSize: '0.875rem' }}
+              />
+              <button
+                onClick={() => handleSendPhotoRequest(newPromptText)}
+                disabled={!newPromptText.trim() || sendingPrompt}
+                style={{ flexShrink: 0, backgroundColor: 'var(--accent)', color: '#F7E7CE', border: 'none', borderRadius: '0.75rem', padding: '0 1.25rem', fontWeight: 600, fontSize: '0.875rem', cursor: !newPromptText.trim() || sendingPrompt ? 'default' : 'pointer', opacity: !newPromptText.trim() || sendingPrompt ? 0.4 : 1 }}
+              >
+                {sendingPrompt ? '…' : 'Send'}
+              </button>
+            </div>
           </div>
         )}
 

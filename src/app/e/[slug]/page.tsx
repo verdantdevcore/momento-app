@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -53,6 +53,12 @@ type FeedCard = {
   isBatch: boolean
 }
 
+type PhotoRequest = {
+  id: string
+  prompt: string
+  createdAt: string
+}
+
 export default function EventFeedPage() {
   const { slug } = useParams()
   const supabase = useMemo(() => createClient(), [])
@@ -71,6 +77,12 @@ export default function EventFeedPage() {
   // which has to render differently from "you haven't searched yet".
   const [faceMatchIds, setFaceMatchIds] = useState<string[] | null>(null)
   const [recapReady, setRecapReady] = useState(false)
+  const [photoRequests, setPhotoRequests] = useState<PhotoRequest[]>([])
+  // Hiding the banner is per-guest and local only — there's no guest identity
+  // to persist it against, so it reappears on a fresh page load. That's the
+  // right default: a guest who left and came back should see the request is
+  // still live rather than have it silently stay hidden forever.
+  const [hiddenRequestIds, setHiddenRequestIds] = useState<Set<string>>(new Set())
 
   const observerRefs = useRef<Map<string, IntersectionObserver>>(new Map())
   const headerRef = useRef<HTMLElement | null>(null)
@@ -85,6 +97,17 @@ export default function EventFeedPage() {
     process.env.NEXT_PUBLIC_APP_URL ??
     (typeof window !== 'undefined' ? window.location.origin : '')
   ).replace(/\/$/, '')
+
+  const fetchPhotoRequests = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/photo-requests?slug=${encodeURIComponent(String(slug))}`)
+      if (!res.ok) return
+      const data = await res.json()
+      setPhotoRequests(data.requests ?? [])
+    } catch {
+      // Best-effort, same as the recap status check below.
+    }
+  }, [slug])
 
   useEffect(() => {
     async function fetchData() {
@@ -115,9 +138,20 @@ export default function EventFeedPage() {
         .then(res => res.ok ? res.json() : null)
         .then(data => { if (data?.status === 'ready') setRecapReady(true) })
         .catch(() => {})
+
+      fetchPhotoRequests()
     }
     fetchData()
-  }, [slug, supabase])
+  }, [slug, supabase, fetchPhotoRequests])
+
+  // Photo requests are the one thing on this page a guest should see without
+  // any action on their part — a host creates one mid-event expecting it to
+  // reach guests who are already sitting on the feed. Every other update here
+  // waits for a manual pull-to-refresh, but that bar is too high for this.
+  useEffect(() => {
+    const id = setInterval(fetchPhotoRequests, 20000)
+    return () => clearInterval(id)
+  }, [fetchPhotoRequests])
 
   useEffect(() => {
     function recalcHeight() {
@@ -236,6 +270,7 @@ export default function EventFeedPage() {
         .order('created_at', { ascending: false })
       if (mediaData) setMedia(mediaData)
     }
+    await fetchPhotoRequests()
     setRefreshing(false)
   }
 
@@ -421,6 +456,36 @@ export default function EventFeedPage() {
         </div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </header>
+
+      {/* Photo request banner — only the newest live request, and only while
+          uploads are actually possible. Older still-active requests stay
+          visible in the host dashboard; surfacing more than one here at once
+          would read as clutter rather than a single clear ask. */}
+      {getFeedStatus(event) === 'open' && photoRequests.some(r => !hiddenRequestIds.has(r.id)) && (() => {
+        const request = photoRequests.find(r => !hiddenRequestIds.has(r.id))!
+        return (
+          <div style={{ backgroundColor: 'var(--accent)', color: '#F7E7CE', padding: '0.625rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              📸 {request.prompt}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+              <Link
+                href={`/e/${slug}/upload`}
+                style={{ backgroundColor: 'rgba(0,0,0,0.2)', color: '#F7E7CE', borderRadius: '2rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
+              >
+                Upload →
+              </Link>
+              <button
+                onClick={() => setHiddenRequestIds(prev => new Set(prev).add(request.id))}
+                aria-label="Dismiss"
+                style={{ background: 'none', border: 'none', color: '#F7E7CE', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, padding: '0.125rem', opacity: 0.8 }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Filter bar — hashtags, plus the face-search chip when the host has
           turned it on, plus the recap link once one exists. Renders even
