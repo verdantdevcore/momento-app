@@ -89,3 +89,30 @@ export async function enqueueFaceIndexBatch(mediaIds: string[]): Promise<number>
 function faceIndexUrl(): string {
   return `${process.env.NEXT_PUBLIC_APP_URL}/api/face/index`
 }
+
+/**
+ * Queues curation + assembly of one event's AI recap. Off the request path
+ * deliberately, same reasoning as face indexing: curation reads every photo
+ * in the event and a host clicking "Generate recap" should not wait on that.
+ */
+export async function enqueueRecapGenerate(eventId: string) {
+  if (!qstash) {
+    console.warn('[qstash] QSTASH_TOKEN not set — skipping recap generation for', eventId)
+    return
+  }
+  try {
+    const res = await qstash.publishJSON({
+      url: recapGenerateUrl(),
+      body: { eventId },
+      // The job is idempotent via events.recap_status, so retries are safe.
+      retries: 2,
+    })
+    console.log('[qstash] queued recap generate', { eventId, messageId: res.messageId })
+  } catch (err) {
+    console.error('[qstash] failed to queue recap generate:', { eventId, err })
+  }
+}
+
+function recapGenerateUrl(): string {
+  return `${process.env.NEXT_PUBLIC_APP_URL}/api/recap/generate-job`
+}

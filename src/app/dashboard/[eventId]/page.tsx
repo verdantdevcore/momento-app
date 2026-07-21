@@ -131,6 +131,10 @@ type Event = {
   feed_closes_at: string | null
   face_search_enabled: boolean
   face_search_attested_at: string | null
+  recap_status: 'idle' | 'processing' | 'ready' | 'failed'
+  recap_generated_at: string | null
+  recap_item_count: number | null
+  recap_error: string | null
 }
 
 // Superseded by instantToZonedWallClock, which renders the stored instant in
@@ -199,6 +203,7 @@ export default function EventDashboardPage() {
   const [confirmModal, setConfirmModal] = useState<ConfirmState>(null)
   const [errorToast, setErrorToast] = useState<string | null>(null)
   const [faceSaving, setFaceSaving] = useState(false)
+  const [recapTriggering, setRecapTriggering] = useState(false)
   const closeConfirm = useCallback(() => setConfirmModal(null), [])
 
   const appUrl = (
@@ -225,6 +230,50 @@ export default function EventDashboardPage() {
     })
     return () => subscription.unsubscribe()
   }, [eventId, router, supabase])
+
+  // Polls recap status while generation is in flight, so the card flips from
+  // "Generating…" to its ready/failed state without a manual refresh.
+  useEffect(() => {
+    if (!event || event.recap_status !== 'processing') return
+    const id = setInterval(async () => {
+      const res = await fetch(`/api/recap/status?eventId=${event.id}`)
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.status !== 'processing') {
+        setEvent(prev => prev && ({
+          ...prev,
+          recap_status: data.status,
+          recap_generated_at: data.generatedAt,
+          recap_item_count: data.itemCount,
+          recap_error: data.error,
+        }))
+      }
+    }, 4000)
+    return () => clearInterval(id)
+    // Deliberately narrow: only id/status should restart the poll — including
+    // the whole `event` object would tear down and recreate the interval on
+    // every unrelated field edit while the recap is generating.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.id, event?.recap_status])
+
+  async function handleGenerateRecap() {
+    if (!event || recapTriggering) return
+    setRecapTriggering(true)
+    try {
+      const res = await fetch('/api/recap/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: event.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Could not start recap generation')
+      setEvent(prev => prev && ({ ...prev, recap_status: 'processing', recap_error: null }))
+    } catch (err) {
+      setErrorToast(err instanceof Error ? err.message : 'Could not start recap generation. Please try again.')
+    } finally {
+      setRecapTriggering(false)
+    }
+  }
 
   async function copyLink() {
     await navigator.clipboard.writeText(eventUrl)
@@ -648,6 +697,66 @@ export default function EventDashboardPage() {
                 ? 'Guests see a notice explaining this before they search. Face data is deleted when you turn this off or delete the event.'
                 : 'Off by default. Only turn this on if your guests know their photos will be scanned for faces — you’ll be asked to confirm you have their consent.'}
             </p>
+          </div>
+        )}
+
+        {/* Event recap */}
+        {!editing && (
+          <div style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '1rem', border: '1px solid var(--border)', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700, fontSize: '0.95rem' }}>
+                  Event recap
+                </p>
+                <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0', fontSize: '0.825rem', lineHeight: 1.5 }}>
+                  A ~90 second highlight reel of your event&apos;s best moments.
+                </p>
+              </div>
+              <button
+                onClick={handleGenerateRecap}
+                disabled={recapTriggering || event.recap_status === 'processing'}
+                style={{
+                  flexShrink: 0, minHeight: '44px', padding: '0 1rem',
+                  borderRadius: '2rem', border: '1px solid var(--border)',
+                  backgroundColor: event.recap_status === 'ready' ? 'var(--bg-input)' : 'var(--accent)',
+                  color: event.recap_status === 'ready' ? 'var(--text-primary)' : '#F7E7CE',
+                  fontSize: '0.825rem', fontWeight: 600,
+                  cursor: recapTriggering || event.recap_status === 'processing' ? 'default' : 'pointer',
+                  opacity: recapTriggering || event.recap_status === 'processing' ? 0.5 : 1, whiteSpace: 'nowrap',
+                }}
+              >
+                {event.recap_status === 'processing' ? 'Generating…'
+                  : event.recap_status === 'ready' ? 'Regenerate'
+                  : 'Generate recap'}
+              </button>
+            </div>
+
+            {event.recap_status === 'ready' && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                <p style={{ color: 'var(--text-dim)', margin: 0, fontSize: '0.75rem' }}>
+                  {event.recap_item_count} moments
+                  {event.recap_generated_at ? ` · generated ${formatTimeAgo(event.recap_generated_at)}` : ''}
+                </p>
+                <a
+                  href={`${appUrl}/e/${event.slug}/recap`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}
+                >
+                  View recap →
+                </a>
+              </div>
+            )}
+            {event.recap_status === 'failed' && (
+              <p style={{ color: 'var(--danger)', margin: 0, fontSize: '0.75rem', lineHeight: 1.5 }}>
+                {event.recap_error ?? 'Something went wrong generating the recap.'}
+              </p>
+            )}
+            {event.recap_status === 'idle' && (
+              <p style={{ color: 'var(--text-dim)', margin: 0, fontSize: '0.75rem', lineHeight: 1.5 }}>
+                Picks your event&apos;s best photos automatically — no editing required.
+              </p>
+            )}
           </div>
         )}
 

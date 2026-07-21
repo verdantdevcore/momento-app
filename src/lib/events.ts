@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { deleteEventAssets, eventFolder, type AssetDeletionResult } from '@/lib/cloudinary'
+import { cloudinary, deleteEventAssets, eventFolder, extractPublicId, type AssetDeletionResult } from '@/lib/cloudinary'
 import { deleteEventCollection } from '@/lib/faces'
 
 const adminClient = createClient(
@@ -35,6 +35,25 @@ export async function purgeEvent(event: { id: string; slug: string }): Promise<E
   // logs-and-continues on a genuine failure so a stuck collection can't make
   // the event undeletable — same posture as the asset deletion above.
   const faceCollectionRemoved = await deleteEventCollection(event.slug)
+
+  // A recap composed server-side (Phase 2 — see recap_render_mode) lives at a
+  // Cloudinary asset that isn't a `media` row, so deleteEventAssets never sees
+  // it. Always a no-op today: v1 recaps are client-rendered slideshows with no
+  // recap_video_url, but this keeps purge complete once that path ships,
+  // without needing another migration or another call-site change.
+  const { data: eventRow } = await adminClient
+    .from('events')
+    .select('recap_video_url')
+    .eq('id', event.id)
+    .maybeSingle()
+  if (eventRow?.recap_video_url) {
+    const publicId = extractPublicId(eventRow.recap_video_url)
+    if (publicId) {
+      await cloudinary.api
+        .delete_resources([publicId], { resource_type: 'video', invalidate: true })
+        .catch((err: unknown) => console.error('[recap] video delete failed:', { eventId: event.id, err }))
+    }
+  }
 
   // Drop the row even if some destroys failed, otherwise one stuck asset makes
   // the event permanently undeletable. Failures surface in the audit log for

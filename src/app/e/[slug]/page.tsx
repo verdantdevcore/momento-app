@@ -70,6 +70,7 @@ export default function EventFeedPage() {
   // null = not searched. An empty array is a real result ("no photos of you"),
   // which has to render differently from "you haven't searched yet".
   const [faceMatchIds, setFaceMatchIds] = useState<string[] | null>(null)
+  const [recapReady, setRecapReady] = useState(false)
 
   const observerRefs = useRef<Map<string, IntersectionObserver>>(new Map())
   const headerRef = useRef<HTMLElement | null>(null)
@@ -107,6 +108,13 @@ export default function EventFeedPage() {
 
       if (mediaData) setMedia(mediaData)
       setLoading(false)
+
+      // Best-effort — a guest simply won't see the "Watch recap" pill if this
+      // fails, no error state needed for a purely additive affordance.
+      fetch(`/api/recap/status?slug=${encodeURIComponent(String(slug))}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => { if (data?.status === 'ready') setRecapReady(true) })
+        .catch(() => {})
     }
     fetchData()
   }, [slug, supabase])
@@ -415,12 +423,21 @@ export default function EventFeedPage() {
       </header>
 
       {/* Filter bar — hashtags, plus the face-search chip when the host has
-          turned it on. Renders for face search even with no hashtags yet. */}
-      {(allTags.length > 0 || event.face_search_enabled) && (
+          turned it on, plus the recap link once one exists. Renders even
+          with no hashtags yet as long as either feature is active. */}
+      {(allTags.length > 0 || event.face_search_enabled || recapReady) && (
         <div
           ref={filterRef}
           style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '0.625rem 1rem', display: 'flex', gap: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}
         >
+          {recapReady && (
+            <Link
+              href={`/e/${slug}/recap`}
+              style={{ height: '32px', paddingLeft: '0.875rem', paddingRight: '0.875rem', borderRadius: '2rem', border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '0.825rem', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none' }}
+            >
+              🎬 Watch recap
+            </Link>
+          )}
           {event.face_search_enabled && (
             <button
               onClick={() => faceMatchIds ? setFaceMatchIds(null) : setFaceSheetOpen(true)}
