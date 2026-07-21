@@ -18,6 +18,24 @@ type Event = {
   feed_closes_at: string | null
 }
 
+/**
+ * How far along the whole selection is, measured in bytes actually sent.
+ *
+ * `percent` is weighted by file size rather than file count, so a 40MB video
+ * followed by a 200KB photo doesn't crawl to 50% and then leap to done.
+ */
+type Progress = { fileIndex: number; totalFiles: number; percent: number }
+
+/**
+ * Share of a file's progress earned by transferring its bytes.
+ *
+ * The last slice is held back for the round trip after the bytes land:
+ * Cloudinary finishes processing the asset and our own /api/upload saves the
+ * media record. Without it the bar would park at 100% for seconds — on a large
+ * video, long enough for a guest to assume it had frozen.
+ */
+const TRANSFER_SHARE = 0.9
+
 export default function UploadPage() {
   const { slug } = useParams()
   const router = useRouter()
@@ -30,7 +48,7 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
-  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
+  const [progress, setProgress] = useState<Progress | null>(null)
   const [fileWarning, setFileWarning] = useState('')
   const { isDesktop } = useWindowWidth()
 
@@ -138,11 +156,55 @@ async function readJson<T>(response: Response, fallback: string): Promise<T> {
   return data
 }
 
+/**
+ * POSTs a file and reports bytes sent as they go.
+ *
+ * fetch() gives no visibility into the request body's upload, so the bar could
+ * only ever count whole files. XMLHttpRequest still exposes upload.onprogress,
+ * which is the only way to know a 40MB video is 12MB in. The response is handed
+ * back to readJson so failures read the same as everywhere else.
+ */
+function postWithProgress(
+  url: string,
+  body: FormData,
+  fallback: string,
+  onProgress: (sentBytes: number) => void,
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', url)
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) onProgress(e.loaded)
+    })
+    xhr.addEventListener('load', () => {
+      // status 0 means the request never reached the server — no body to read.
+      if (xhr.status === 0) return reject(new Error(fallback))
+      // An empty string is still a body to Response(), which rejects one on a
+      // 204 — pass null so a no-content reply reaches readJson intact.
+      resolve(new Response(xhr.responseText || null, { status: xhr.status }))
+    })
+    xhr.addEventListener('error', () => reject(new Error(fallback)))
+    xhr.addEventListener('abort', () => reject(new Error(fallback)))
+    xhr.send(body)
+  })
+}
+
 async function handleUpload() {
     if (!files || files.length === 0 || !event) return
     setUploading(true)
     setError('')
-    setProgress({ current: 0, total: files.length })
+
+    const selected = Array.from(files)
+    // Guard against a zero-byte selection so the percentage never divides by 0.
+    const totalBytes = Math.max(selected.reduce((sum, f) => sum + f.size, 0), 1)
+    let settledBytes = 0 // bytes belonging to files already saved
+
+    function report(fileIndex: number, sentBytes: number) {
+      const done = (settledBytes + sentBytes) / totalBytes
+      setProgress({ fileIndex, totalFiles: selected.length, percent: Math.min(Math.round(done * 100), 100) })
+    }
+
+    report(0, 0)
 
     const guestName = name.trim() || null
     if (guestName) localStorage.setItem('momento-guest-name', guestName)
@@ -166,9 +228,9 @@ async function handleUpload() {
     }
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        setProgress({ current: i + 1, total: files.length })
+      for (let i = 0; i < selected.length; i++) {
+        const file = selected[i]
+        report(i, 0)
 
         // Step 1: ask our server for a short-lived signed upload for this
         // file. This request is tiny (no file bytes) regardless of the
@@ -197,11 +259,16 @@ async function handleUpload() {
         cdForm.append('folder', sig.folder)
         if (sig.format) cdForm.append('format', sig.format)
 
-        const cdResponse = await fetch(
+        const cdFailed = 'Upload to storage failed. Please try again.'
+        const cdResponse = await postWithProgress(
           `https://api.cloudinary.com/v1_1/${sig.cloudName}/${sig.resourceType}/upload`,
-          { method: 'POST', body: cdForm }
+          cdForm,
+          cdFailed,
+          // The form carries a little metadata beyond the file, so cap the
+          // reported bytes at the file's own size to keep the maths honest.
+          sent => report(i, Math.min(sent, file.size) * TRANSFER_SHARE),
         )
-        const cdResult = await readJson<CloudinaryUpload>(cdResponse, 'Upload to storage failed. Please try again.')
+        const cdResult = await readJson<CloudinaryUpload>(cdResponse, cdFailed)
 
         // Step 3: tell our server the upload succeeded so it can save the
         // media record. This is another small JSON request.
@@ -220,6 +287,9 @@ async function handleUpload() {
         })
 
         await readJson<{ mediaId: string }>(response, 'Could not save the upload. Please try again.')
+
+        settledBytes += file.size
+        report(i, 0)
       }
       setDone(true)
     } catch (err) {
@@ -428,15 +498,17 @@ async function handleUpload() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>
-                  Uploading {progress.current} of {progress.total}...
+                  {progress.totalFiles > 1
+                    ? `Uploading ${progress.fileIndex + 1} of ${progress.totalFiles}...`
+                    : 'Uploading...'}
                 </p>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0 }}>
-                  {Math.round((progress.current / progress.total) * 100)}%
+                  {progress.percent}%
                 </p>
               </div>
               <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--border)', borderRadius: '999px', overflow: 'hidden' }}>
                 <div
-                  style={{ height: '100%', backgroundColor: 'var(--accent)', borderRadius: '999px', width: `${(progress.current / progress.total) * 100}%`, transition: 'width 0.3s ease' }}
+                  style={{ height: '100%', backgroundColor: 'var(--accent)', borderRadius: '999px', width: `${progress.percent}%`, transition: 'width 0.2s linear' }}
                 />
               </div>
             </div>
@@ -447,7 +519,7 @@ async function handleUpload() {
             disabled={uploading || !files || files.length === 0}
             style={{ width: '100%', backgroundColor: 'var(--accent)', color: '#F7E7CE', borderRadius: '0.75rem', padding: '0.875rem', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '1rem', minHeight: '52px', opacity: uploading || !files || files.length === 0 ? 0.4 : 1 }}
           >
-            {uploading ? `Uploading ${progress?.current} of ${progress?.total}...` : 'Upload'}
+            {uploading ? `Uploading... ${progress?.percent ?? 0}%` : 'Upload'}
           </button>
 
           <a
