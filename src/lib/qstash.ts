@@ -2,6 +2,25 @@ import { Client } from '@upstash/qstash'
 
 const qstash = process.env.QSTASH_TOKEN ? new Client({ token: process.env.QSTASH_TOKEN }) : null
 
+// The apex domain 301-redirects to www, and QStash's delivery worker (like
+// most HTTP clients) downgrades POST to GET when it follows that redirect —
+// turning every queued job into a 405 against a POST-only route. Force www
+// here rather than changing NEXT_PUBLIC_APP_URL globally, since that value
+// also feeds Supabase's emailRedirectTo allowlist and guest-facing share
+// links, neither of which has this problem (browsers preserve GET on 301).
+function qstashOrigin(): string {
+  const raw = process.env.NEXT_PUBLIC_APP_URL ?? ''
+  try {
+    const url = new URL(raw)
+    if (!url.hostname.startsWith('www.') && url.hostname !== 'localhost') {
+      url.hostname = `www.${url.hostname}`
+    }
+    return url.origin
+  } catch {
+    return raw
+  }
+}
+
 export type OnboardingCheckpoint = '24h' | '48h' | '72h' | '7d'
 
 const DELAY_SECONDS: Record<OnboardingCheckpoint, number> = {
@@ -19,7 +38,7 @@ export async function scheduleOnboardingChecks(hostId: string) {
     console.warn('[qstash] QSTASH_TOKEN not set — skipping onboarding reminder scheduling for', hostId)
     return
   }
-  const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/cron/onboarding-check`
+  const url = `${qstashOrigin()}/api/cron/onboarding-check`
   const results = await Promise.all(
     (Object.keys(DELAY_SECONDS) as OnboardingCheckpoint[]).map(checkpoint =>
       qstash!.publishJSON({ url, body: { hostId, checkpoint }, delay: DELAY_SECONDS[checkpoint] })
@@ -87,7 +106,7 @@ export async function enqueueFaceIndexBatch(mediaIds: string[]): Promise<number>
 }
 
 function faceIndexUrl(): string {
-  return `${process.env.NEXT_PUBLIC_APP_URL}/api/face/index`
+  return `${qstashOrigin()}/api/face/index`
 }
 
 /**
@@ -114,5 +133,5 @@ export async function enqueueRecapGenerate(eventId: string) {
 }
 
 function recapGenerateUrl(): string {
-  return `${process.env.NEXT_PUBLIC_APP_URL}/api/recap/generate-job`
+  return `${qstashOrigin()}/api/recap/generate-job`
 }
