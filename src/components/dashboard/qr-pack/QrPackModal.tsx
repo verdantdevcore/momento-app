@@ -11,7 +11,9 @@ import { formatEventDate, formatEventTime } from '@/lib/utils'
 import {
   TEMPLATES, getTemplate, defaultCopy, packFileName, packBundleName,
   svgToPngBlob, buildPackPdf, downloadBlob,
-  type TemplateId, type PackVariant, type PackData,
+  PRESETS, buildPalette, normalizeHex, contrastRatio, variantName,
+  MIN_READABLE_CONTRAST,
+  type TemplateId, type PackData,
 } from '@/lib/qr-pack'
 import { TEMPLATE_COMPONENTS } from './templates'
 
@@ -24,21 +26,74 @@ interface EventLike {
   location: string | null
 }
 
-const VARIANTS: { id: PackVariant; label: string; swatch: string }[] = [
-  { id: 'cream', label: 'Cream', swatch: '#F7E7CE' },
-  { id: 'olive', label: 'Olive', swatch: '#556B2F' },
-]
-
 const label: React.CSSProperties = {
   fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)',
   letterSpacing: '0.03em', textTransform: 'uppercase',
 }
 
+// --text-on-input, not --text-primary: this modal is a .chrome-surface, where
+// --text-primary is the chrome's cream. The field keeps its own light well, so
+// cream ink in it is invisible (see globals.css).
 const field: React.CSSProperties = {
   width: '100%', backgroundColor: 'var(--bg-input)',
   border: '1px solid var(--border)', borderRadius: '0.625rem',
-  padding: '0.625rem 0.75rem', color: 'var(--text-primary)',
+  padding: '0.625rem 0.75rem', color: 'var(--text-on-input)',
   fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box',
+}
+
+/**
+ * A swatch + hex box for one colour.
+ *
+ * The hex is buffered rather than bound straight to state: committing every
+ * keystroke would reject "#55" the moment a host starts typing. Invalid text
+ * is simply not committed, and snaps back to the live colour on blur.
+ *
+ * `synced` tracks the last colour this field itself put out, so the box is
+ * only overwritten when the colour changes from *outside* — picking a preset
+ * or using the swatch. Without that, committing a hex mid-typing would
+ * rewrite what the host is still typing into its normalized form.
+ */
+function ColorField({ name, value, onChange }: {
+  name: string
+  value: string
+  onChange: (hex: string) => void
+}) {
+  const [draft, setDraft] = useState(value)
+  const [synced, setSynced] = useState(value)
+  if (value !== synced) {
+    setSynced(value)
+    setDraft(value)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flex: 1, minWidth: 0 }}>
+      <span style={label}>{name}</span>
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <input
+          type="color"
+          aria-label={`${name} colour`}
+          value={value}
+          onChange={e => onChange(e.target.value.toUpperCase())}
+          style={{
+            width: '44px', height: '40px', padding: '2px', flexShrink: 0, cursor: 'pointer',
+            background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '0.5rem',
+          }}
+        />
+        <input
+          aria-label={`${name} hex`}
+          value={draft}
+          spellCheck={false}
+          onChange={e => {
+            setDraft(e.target.value)
+            const hex = normalizeHex(e.target.value)
+            if (hex) { setSynced(hex); onChange(hex) }
+          }}
+          onBlur={() => setDraft(value)}
+          style={{ ...field, fontFamily: 'ui-monospace, monospace', fontSize: '0.8rem' }}
+        />
+      </div>
+    </div>
+  )
 }
 
 const actionBtn: React.CSSProperties = {
@@ -55,7 +110,8 @@ export default function QrPackModal({ event, qrValue, onClose }: {
 }) {
   const svgRefs = useRef<Record<TemplateId, SVGSVGElement | null>>({ welcome: null, table: null, poster: null })
   const [active, setActive] = useState<TemplateId>('welcome')
-  const [variant, setVariant] = useState<PackVariant>('cream')
+  const [bg, setBg] = useState(PRESETS[0].bg)
+  const [ink, setInk] = useState(PRESETS[0].ink)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -70,6 +126,11 @@ export default function QrPackModal({ event, qrValue, onClose }: {
   const [timeLabel, setTimeLabel] = useState(formatEventTime(event.event_date, event.event_time, event.timezone))
   const [location, setLocation] = useState(event.location ?? '')
   const [tableLabel, setTableLabel] = useState('Table 1')
+
+  const palette = useMemo(() => buildPalette(bg, ink), [bg, ink])
+  // Names the download, so a host can tell two colourways apart on disk.
+  const variant = variantName(bg, ink)
+  const lowContrast = contrastRatio(bg, ink) < MIN_READABLE_CONTRAST
 
   const buildData = (id: TemplateId): PackData => ({
     heading: copy[id].heading,
@@ -133,13 +194,13 @@ export default function QrPackModal({ event, qrValue, onClose }: {
         <Comp
           ref={el => { svgRefs.current[t.id] = el }}
           data={buildData(t.id)}
-          variant={variant}
+          palette={palette}
           qrValue={qrValue}
         />
       </div>
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [active, variant, qrValue, copy, dateLabel, timeLabel, location, tableLabel])
+  }), [active, palette, qrValue, copy, dateLabel, timeLabel, location, tableLabel])
 
   return (
     <div
@@ -197,20 +258,40 @@ export default function QrPackModal({ event, qrValue, onClose }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
               <span style={label}>Colour</span>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {VARIANTS.map(v => (
-                  <button key={v.id} onClick={() => setVariant(v.id)} style={{
-                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                    padding: '0.6rem', borderRadius: '0.625rem', minHeight: '44px', cursor: 'pointer',
-                    border: `1px solid ${variant === v.id ? 'var(--accent)' : 'var(--border)'}`,
-                    background: variant === v.id ? 'var(--accent)' : 'none',
-                    color: variant === v.id ? '#F7E7CE' : 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem',
-                  }}>
-                    <span style={{ width: 16, height: 16, borderRadius: '50%', background: v.swatch, border: '1px solid rgba(0,0,0,0.2)' }} />
-                    {v.label}
-                  </button>
-                ))}
+              {/* Each chip is painted in the colourway it applies, so the row
+                  doubles as the preview of what the host is choosing between. */}
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {PRESETS.map(pr => {
+                  const on = variant === pr.id
+                  return (
+                    <button
+                      key={pr.id}
+                      onClick={() => { setBg(pr.bg); setInk(pr.ink) }}
+                      aria-pressed={on}
+                      style={{
+                        flex: '1 1 30%', minWidth: '92px', minHeight: '44px', cursor: 'pointer',
+                        padding: '0.5rem', borderRadius: '0.625rem', fontWeight: 600, fontSize: '0.8rem',
+                        background: pr.bg, color: pr.ink,
+                        border: `2px solid ${on ? 'var(--accent)' : 'transparent'}`,
+                        outline: on ? 'none' : '1px solid var(--border)', outlineOffset: '-1px',
+                      }}
+                    >
+                      {pr.name}
+                    </button>
+                  )
+                })}
               </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                <ColorField name="Background" value={bg} onChange={setBg} />
+                <ColorField name="Text &amp; art" value={ink} onChange={setInk} />
+              </div>
+
+              {lowContrast && (
+                <p style={{ color: 'var(--danger)', margin: '0.125rem 0 0', fontSize: '0.75rem', fontWeight: 500 }}>
+                  ⚠ These two colours are close in tone — the printed text may be hard to read.
+                </p>
+              )}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>

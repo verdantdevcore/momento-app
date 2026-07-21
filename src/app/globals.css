@@ -27,6 +27,12 @@
      background, and the chrome's cream would be invisible in it. */
   --text-on-input: #F7E7CE;
 
+  /* Placeholder ink. Tailwind's preflight derives placeholders from
+     currentColor, which inside a .chrome-surface is the chrome's cream — so a
+     field's hint text vanished into its own white well. Stated explicitly
+     instead, and kept grey so it still reads as a hint rather than a value. */
+  --text-placeholder: #8A93A5;
+
   /* Chrome surfaces — consumed only via .chrome-surface below. Dark mode
      already renders this chrome dark with cream text, so these match the
      values it was using and nothing changes visually. */
@@ -65,6 +71,7 @@
   --danger:        #ef4444;
   --danger-border: #7f1d1d;
   --text-on-input: #0A142F;
+  --text-placeholder: #6B7280;
 
   /* Chrome surfaces take the same olive as the active category pill, which
      is a dark background sitting inside a light page — so it needs the pill's
@@ -119,6 +126,20 @@
   --accent:        var(--accent-chrome);
   --danger:        var(--danger-chrome);
   --danger-border: var(--danger-border-chrome);
+}
+
+/* A field on a chrome surface keeps the theme's own input background (the
+   chrome overrides text and border tokens, not --bg-input), so its ink has to
+   come from the input token rather than the inherited chrome cream. This is
+   the default the comment on --text-on-input asks for; a component setting
+   `color` inline still has to name the token itself, since inline wins. */
+.chrome-surface :is(input, textarea, select) {
+  color: var(--text-on-input);
+}
+
+.chrome-surface :is(input, textarea)::placeholder {
+  color: var(--text-placeholder);
+  opacity: 1;
 }
 
 *,

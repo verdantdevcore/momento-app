@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   slugify, packFileName, packBundleName, defaultCopy, pxFor,
   getTemplate, TEMPLATES,
+  normalizeHex, mix, contrastRatio, buildPalette, variantName,
+  PRESETS, MIN_READABLE_CONTRAST,
 } from './qr-pack'
 
 // Only the pure helpers are covered here. The SVG→PNG rasterization and PDF
@@ -59,6 +61,97 @@ describe('pxFor', () => {
   it('converts mm to pixels at 300 dpi', () => {
     expect(pxFor(210)).toBe(2480) // A4 width
     expect(pxFor(297)).toBe(3508) // A4 height
+  })
+})
+
+describe('normalizeHex', () => {
+  it('expands shorthand and uppercases', () => {
+    expect(normalizeHex('#abc')).toBe('#AABBCC')
+    expect(normalizeHex('f7e7ce')).toBe('#F7E7CE')
+  })
+  it('rejects anything that is not a hex colour', () => {
+    expect(normalizeHex('')).toBeNull()
+    expect(normalizeHex('#55')).toBeNull()
+    expect(normalizeHex('rebeccapurple')).toBeNull()
+    expect(normalizeHex('#1234567')).toBeNull()
+  })
+})
+
+describe('mix', () => {
+  it('returns the endpoints at t=0 and t=1', () => {
+    expect(mix('#000000', '#FFFFFF', 0)).toBe('#000000')
+    expect(mix('#000000', '#FFFFFF', 1)).toBe('#FFFFFF')
+  })
+  it('blends halfway', () => {
+    expect(mix('#000000', '#FFFFFF', 0.5)).toBe('#808080')
+  })
+})
+
+describe('contrastRatio', () => {
+  it('is 21:1 for black on white and 1:1 for a colour on itself', () => {
+    expect(contrastRatio('#000000', '#FFFFFF')).toBeCloseTo(21, 1)
+    expect(contrastRatio('#556B2F', '#556B2F')).toBeCloseTo(1, 5)
+  })
+  it('is order-independent', () => {
+    expect(contrastRatio('#F7E7CE', '#556B2F')).toBeCloseTo(contrastRatio('#556B2F', '#F7E7CE'), 10)
+  })
+})
+
+describe('buildPalette', () => {
+  it('keeps the host\'s two choices verbatim', () => {
+    const p = buildPalette('#F7E7CE', '#556B2F')
+    expect(p.bg).toBe('#F7E7CE')
+    expect(p.ink).toBe('#556B2F')
+  })
+
+  it('derives the in-between tones between ink and background', () => {
+    const p = buildPalette('#F7E7CE', '#556B2F')
+    // Each successive tone sits further from the ink, toward the background.
+    const d = (c: string) => contrastRatio(c, '#556B2F')
+    expect(d(p.sub)).toBeLessThan(d(p.faint))
+    expect(d(p.faint)).toBeLessThan(d(p.line))
+  })
+
+  it('leaves a dark ink alone for the QR', () => {
+    // The original olive already scans; it must not be darkened.
+    expect(buildPalette('#F7E7CE', '#556B2F').qr).toBe('#556B2F')
+  })
+
+  it('darkens a pale ink until the QR can scan off its white card', () => {
+    const p = buildPalette('#1A1A1A', '#F2F2F2')
+    expect(p.qr).not.toBe('#F2F2F2')
+    expect(contrastRatio(p.qr, '#FFFFFF')).toBeGreaterThanOrEqual(5)
+  })
+
+  it('falls back to the brand colours for unparseable input', () => {
+    const p = buildPalette('nonsense', 'also-nonsense')
+    expect(p.bg).toBe('#F7E7CE')
+    expect(p.ink).toBe('#556B2F')
+  })
+})
+
+describe('presets', () => {
+  it('are all legible enough not to trip the contrast warning', () => {
+    for (const p of PRESETS) {
+      expect(contrastRatio(p.bg, p.ink)).toBeGreaterThanOrEqual(MIN_READABLE_CONTRAST)
+    }
+  })
+  it('all produce a scannable QR', () => {
+    for (const p of PRESETS) {
+      expect(contrastRatio(buildPalette(p.bg, p.ink).qr, '#FFFFFF')).toBeGreaterThanOrEqual(5)
+    }
+  })
+})
+
+describe('variantName', () => {
+  it('names a matching preset', () => {
+    expect(variantName('#F7E7CE', '#556B2F')).toBe('cream')
+    expect(variantName('#556b2f', '#f7e7ce')).toBe('olive') // case-insensitive
+  })
+  it('calls anything else custom', () => {
+    expect(variantName('#123456', '#FEDCBA')).toBe('custom')
+    // A preset's colours swapped is a different colourway, not that preset.
+    expect(variantName('#556B2F', '#556B2F')).toBe('custom')
   })
 })
 

@@ -9,27 +9,17 @@
 
 import { forwardRef } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import type { PackData, PackVariant } from '@/lib/qr-pack'
-
-type Palette = { bg: string; ink: string; sub: string; faint: string; line: string }
-
-const PALETTES: Record<PackVariant, Palette> = {
-  cream: { bg: '#F7E7CE', ink: '#556B2F', sub: '#6f7d4c', faint: '#aab488', line: '#cdbd93' },
-  olive: { bg: '#556B2F', ink: '#F7E7CE', sub: '#d8e2bf', faint: '#8fa06a', line: '#77875250' },
-}
+import type { PackData, PackPalette } from '@/lib/qr-pack'
 
 // Geometric-ish stack for display type; plain sans for labels. Both fall back
 // cleanly to Helvetica/Arial so rasterization never depends on a web font.
 const DISPLAY = "'Gill Sans', 'Gill Sans MT', 'Century Gothic', 'Helvetica Neue', Arial, sans-serif"
 const SANS = "'Helvetica Neue', Arial, system-ui, sans-serif"
 
-// The QR is always dark olive on a white card, never on the coloured ground —
-// scanners need the contrast and quiet zone.
-const QR_FG = '#556B2F'
-
 export interface TemplateProps {
   data: PackData
-  variant: PackVariant
+  /** Built by buildPalette() from the host's two colour choices. */
+  palette: PackPalette
   qrValue: string
 }
 
@@ -56,14 +46,19 @@ function Sprig({ color }: { color: string }) {
   )
 }
 
-function QrBlock({ x, y, cardSize, value }: { x: number; y: number; cardSize: number; value: string }) {
+/**
+ * The QR always sits on its own white card, never on the coloured ground —
+ * scanners need the contrast and the quiet zone. `fg` is pre-darkened by
+ * buildPalette(), so even a pale ink still scans.
+ */
+function QrBlock({ x, y, cardSize, value, fg }: { x: number; y: number; cardSize: number; value: string; fg: string }) {
   const pad = cardSize * 0.1
   const qs = cardSize - pad * 2
   return (
     <g transform={`translate(${x} ${y})`}>
       <rect width={cardSize} height={cardSize} rx={cardSize * 0.08} fill="#FFFFFF" />
       <g transform={`translate(${pad} ${pad})`}>
-        <QRCodeSVG value={value} size={qs} bgColor="#FFFFFF" fgColor={QR_FG} level="M" marginSize={0} />
+        <QRCodeSVG value={value} size={qs} bgColor="#FFFFFF" fgColor={fg} level="M" marginSize={0} />
       </g>
     </g>
   )
@@ -117,9 +112,8 @@ function dateTimeLine(data: PackData): string {
 // ─── Welcome sign (A4, 210×297) ───────────────────────────────────────────────
 
 export const WelcomeSign = forwardRef<SVGSVGElement, TemplateProps>(function WelcomeSign(
-  { data, variant, qrValue }, ref,
+  { data, palette: p, qrValue }, ref,
 ) {
-  const p = PALETTES[variant]
   const W = 210, H = 297, cx = W / 2
 
   const headingFs = 18
@@ -149,7 +143,7 @@ export const WelcomeSign = forwardRef<SVGSVGElement, TemplateProps>(function Wel
       <CenteredLines lines={msgLines} cx={cx} y={msgTop} lineHeight={msgFs * 1.35}
         fontFamily={SANS} fontSize={msgFs} fill={p.sub} />
 
-      <QrBlock x={cx - card / 2} y={cardY} cardSize={card} value={qrValue} />
+      <QrBlock x={cx - card / 2} y={cardY} cardSize={card} value={qrValue} fg={p.qr} />
 
       <text x={cx} y={cardY + card + 14} textAnchor="middle" fontFamily={SANS} fontSize={4.2} letterSpacing={3} fill={p.ink}>
         SCAN&nbsp;&nbsp;·&nbsp;&nbsp;UPLOAD&nbsp;&nbsp;·&nbsp;&nbsp;SHARE
@@ -176,9 +170,8 @@ export const WelcomeSign = forwardRef<SVGSVGElement, TemplateProps>(function Wel
 // ─── Table card (A6, 105×148) ─────────────────────────────────────────────────
 
 export const TableCard = forwardRef<SVGSVGElement, TemplateProps>(function TableCard(
-  { data, variant, qrValue }, ref,
+  { data, palette: p, qrValue }, ref,
 ) {
-  const p = PALETTES[variant]
   const W = 105, H = 148, cx = W / 2
 
   const headingFs = 9
@@ -203,7 +196,7 @@ export const TableCard = forwardRef<SVGSVGElement, TemplateProps>(function Table
       <CenteredLines lines={headingLines} cx={cx} y={label ? 34 : 30} lineHeight={headingFs * 1.05}
         fontFamily={DISPLAY} fontSize={headingFs} fontWeight={500} fill={p.ink} />
 
-      <QrBlock x={cx - card / 2} y={46} cardSize={card} value={qrValue} />
+      <QrBlock x={cx - card / 2} y={46} cardSize={card} value={qrValue} fg={p.qr} />
 
       <CenteredLines lines={wrap(data.message, 78, 3.6, 2)} cx={cx} y={109} lineHeight={5}
         fontFamily={SANS} fontSize={3.6} fill={p.sub} />
@@ -224,9 +217,8 @@ export const TableCard = forwardRef<SVGSVGElement, TemplateProps>(function Table
 // ─── Reception poster (A3, 297×420) ───────────────────────────────────────────
 
 export const ReceptionPoster = forwardRef<SVGSVGElement, TemplateProps>(function ReceptionPoster(
-  { data, variant, qrValue }, ref,
+  { data, palette: p, qrValue }, ref,
 ) {
-  const p = PALETTES[variant]
   const W = 297, H = 420, cx = W / 2
 
   const headingFs = 32
@@ -268,7 +260,7 @@ export const ReceptionPoster = forwardRef<SVGSVGElement, TemplateProps>(function
       <CenteredLines lines={msgLines} cx={cx} y={msgTop + 10} lineHeight={msgFs * 1.35}
         fontFamily={SANS} fontSize={msgFs} fill={p.sub} />
 
-      <QrBlock x={cx - card / 2} y={cardY} cardSize={card} value={qrValue} />
+      <QrBlock x={cx - card / 2} y={cardY} cardSize={card} value={qrValue} fg={p.qr} />
 
       {dateTimeLine(data) && (
         <text x={cx} y={cardY + card + 24} textAnchor="middle" fontFamily={DISPLAY} fontSize={7.5} fill={p.sub}>
