@@ -5,8 +5,140 @@
 // and to print-sized PDF via jsPDF (lazy-loaded, so it only ships when a host
 // actually opens the pack).
 
-export type PackVariant = 'cream' | 'olive'
 export type TemplateId = 'welcome' | 'table' | 'poster'
+
+// ─── Colour ───────────────────────────────────────────────────────────────────
+
+/**
+ * Every colour a template paints with, derived from just two host choices.
+ *
+ * Hosts pick a background and an ink; the three in-between tones (secondary
+ * text, botanical sprigs, hairline border) are blends of that pair. Letting
+ * hosts set five colours independently would mostly produce prints that don't
+ * hang together — this keeps any pairing on-brand by construction.
+ */
+export interface PackPalette {
+  bg: string
+  ink: string
+  sub: string
+  faint: string
+  line: string
+  /** QR modules. Always dark enough to scan off the white QR card. */
+  qr: string
+}
+
+export interface PackPreset {
+  id: string
+  name: string
+  bg: string
+  ink: string
+}
+
+/**
+ * One-tap colourways. `cream` and `olive` reproduce the original hand-tuned
+ * palettes almost exactly through the blend ratios below, so existing prints
+ * are unchanged.
+ */
+export const PRESETS: PackPreset[] = [
+  { id: 'cream',    name: 'Cream',    bg: '#F7E7CE', ink: '#556B2F' },
+  { id: 'olive',    name: 'Olive',    bg: '#556B2F', ink: '#F7E7CE' },
+  { id: 'blush',    name: 'Blush',    bg: '#F6E5E1', ink: '#8C4A4A' },
+  { id: 'navy',     name: 'Navy',     bg: '#10233F', ink: '#E8D9B5' },
+  { id: 'sand',     name: 'Sand',     bg: '#EFE7DA', ink: '#3F3A33' },
+  { id: 'noir',     name: 'Noir',     bg: '#1A1A1A', ink: '#F2F2F2' },
+]
+
+/** Accepts `#abc`, `abc`, `#aabbcc` or `aabbcc`; returns `#aabbcc` or null. */
+export function normalizeHex(value: string): string | null {
+  const raw = value.trim().replace(/^#/, '')
+  if (/^[0-9a-f]{3}$/i.test(raw)) {
+    return `#${raw.split('').map(c => c + c).join('')}`.toUpperCase()
+  }
+  if (/^[0-9a-f]{6}$/i.test(raw)) return `#${raw}`.toUpperCase()
+  return null
+}
+
+function toRgb(hex: string): [number, number, number] {
+  const norm = normalizeHex(hex) ?? '#000000'
+  return [
+    parseInt(norm.slice(1, 3), 16),
+    parseInt(norm.slice(3, 5), 16),
+    parseInt(norm.slice(5, 7), 16),
+  ]
+}
+
+function toHex(rgb: number[]): string {
+  return `#${rgb.map(v => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, '0')).join('')}`.toUpperCase()
+}
+
+/** Blends `from` toward `to`; t=0 is `from`, t=1 is `to`. */
+export function mix(from: string, to: string, t: number): string {
+  const a = toRgb(from)
+  const b = toRgb(to)
+  return toHex(a.map((v, i) => v + (b[i] - v) * t))
+}
+
+/** WCAG relative luminance. */
+function luminance(hex: string): number {
+  const [r, g, b] = toRgb(hex).map(v => {
+    const c = v / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/** WCAG contrast ratio, 1 (identical) to 21 (black on white). */
+export function contrastRatio(a: string, b: string): number {
+  const la = luminance(a)
+  const lb = luminance(b)
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05)
+}
+
+/** Below this, body copy on the print gets hard to read — the host is warned. */
+export const MIN_READABLE_CONTRAST = 4.5
+
+/** Ratios that reproduce the original cream/olive palettes from bg + ink. */
+const SUB_MIX = 0.18
+const FAINT_MIX = 0.56
+const LINE_MIX = 0.68
+
+/**
+ * The QR always prints on its own white card, so its ink is judged against
+ * white rather than the background. A host who picks a pale ink would
+ * otherwise get an unscannable code, so pale inks are darkened until they
+ * clear this — 5:1, chosen because the original olive (5.95:1) passes
+ * untouched.
+ */
+const QR_MIN_CONTRAST = 5
+
+function scannableInk(ink: string): string {
+  let c = ink
+  // Each step keeps 80% of the distance to black, so this always converges.
+  for (let i = 0; i < 12 && contrastRatio(c, '#FFFFFF') < QR_MIN_CONTRAST; i++) {
+    c = mix(c, '#000000', 0.2)
+  }
+  return c
+}
+
+/** Expands a host's background + ink into the full template palette. */
+export function buildPalette(bg: string, ink: string): PackPalette {
+  const b = normalizeHex(bg) ?? '#F7E7CE'
+  const i = normalizeHex(ink) ?? '#556B2F'
+  return {
+    bg: b,
+    ink: i,
+    sub: mix(i, b, SUB_MIX),
+    faint: mix(i, b, FAINT_MIX),
+    line: mix(i, b, LINE_MIX),
+    qr: scannableInk(i),
+  }
+}
+
+/** The preset a colour pair matches, or 'custom' — used to name downloads. */
+export function variantName(bg: string, ink: string): string {
+  const hit = PRESETS.find(p => p.bg === normalizeHex(bg) && p.ink === normalizeHex(ink))
+  return hit ? hit.id : 'custom'
+}
 
 /** Physical artwork size of one piece, in millimetres (also the SVG viewBox). */
 export interface PackSize {
@@ -101,11 +233,11 @@ export function slugify(s: string): string {
   return (s || 'event').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'event'
 }
 
-export function packFileName(slug: string, id: TemplateId, variant: PackVariant, ext: string): string {
+export function packFileName(slug: string, id: TemplateId, variant: string, ext: string): string {
   return `${slugify(slug)}-${id}-${variant}.${ext}`
 }
 
-export function packBundleName(slug: string, variant: PackVariant): string {
+export function packBundleName(slug: string, variant: string): string {
   return `${slugify(slug)}-qr-print-pack-${variant}.pdf`
 }
 
