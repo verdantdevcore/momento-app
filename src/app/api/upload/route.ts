@@ -7,6 +7,7 @@ import { enqueueFaceIndex } from '@/lib/qstash'
 import {
   isOriginAllowed,
   isHostInactive,
+  checkRateLimit,
   saveRatelimit,
   UUID_RE,
 } from '@/lib/upload-security'
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Origin not allowed' }, { status: 403 })
   }
 
-  const { success, limit, remaining, reset } = await saveRatelimit.limit(ip)
+  const { success, limit, remaining, reset } = await checkRateLimit(saveRatelimit, ip)
   if (!success) {
     await logAudit({ event_type: 'upload_rate_limited', ip })
     return NextResponse.json(

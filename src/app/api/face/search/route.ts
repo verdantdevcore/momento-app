@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit'
 import { getFeedStatus } from '@/lib/utils'
 import { eventCollection, facesConfigured, NoFaceInSelfieError, searchBySelfie } from '@/lib/faces'
 import {
+  checkRateLimit,
   faceSearchRatelimit,
   isHostInactive,
   isOriginAllowed,
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Face search is unavailable.' }, { status: 503 })
   }
 
-  const { success, limit, remaining, reset } = await faceSearchRatelimit.limit(ip)
+  const { success, limit, remaining, reset } = await checkRateLimit(faceSearchRatelimit, ip)
   if (!success) {
     await logAudit({ event_type: 'face_search_rate_limited', ip })
     return NextResponse.json(

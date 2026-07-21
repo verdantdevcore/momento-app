@@ -48,6 +48,19 @@ describe('POST /api/upload-signature', () => {
     expect((await POST(req(imageBody))).status).toBe(429)
   })
 
+  // The Upstash host stopped resolving and every upload on the platform
+  // 500ed, because .limit() rejected outside the handler's try/catch. Rate
+  // limiting is abuse control, not an authorisation boundary — it has to
+  // fail open.
+  it('still signs when the rate limiter is unreachable', async () => {
+    rateLimit.mockRejectedValue(
+      Object.assign(new Error('fetch failed'), { cause: { code: 'ENOTFOUND' } })
+    )
+    const res = await POST(req(imageBody))
+    expect(res.status).toBe(200)
+    expect((await res.json()).signature).toBe('signature-abc')
+  })
+
   it('400 when eventId is invalid', async () => {
     expect((await POST(req({ ...imageBody, eventId: 'nope' }))).status).toBe(400)
   })

@@ -97,6 +97,47 @@ export default function UploadPage() {
       }
     }
 
+type UploadSignature = {
+  apiKey: string
+  timestamp: number
+  signature: string
+  folder: string
+  format?: string
+  cloudName: string
+  resourceType: 'image' | 'video'
+}
+
+type CloudinaryUpload = { secure_url: string; public_id: string }
+
+/**
+ * Reads a JSON response, or throws something a guest can act on.
+ *
+ * A route that fails before its own handler runs answers with an HTML error
+ * page or an empty body, not JSON. Calling .json() on that throws the
+ * browser's own parser error — on iOS Safari, the famously unhelpful "The
+ * string did not match the expected pattern." — which the catch below then
+ * printed verbatim on screen. Read the body once as text and decide from
+ * there, so a broken dependency reads as a broken upload.
+ */
+async function readJson<T>(response: Response, fallback: string): Promise<T> {
+  const raw = await response.text()
+  // Our routes answer { error: string }; Cloudinary answers { error: { message } }.
+  let data: (T & { error?: string | { message?: string } }) | null = null
+  if (raw) {
+    try { data = JSON.parse(raw) } catch { /* non-JSON error page — handled below */ }
+  }
+
+  const err = data?.error
+  const message =
+    typeof err === 'string' ? err :
+    typeof err?.message === 'string' ? err.message :
+    null
+
+  if (message) throw new Error(message)
+  if (!response.ok || !data) throw new Error(`${fallback} (HTTP ${response.status})`)
+  return data
+}
+
 async function handleUpload() {
     if (!files || files.length === 0 || !event) return
     setUploading(true)
@@ -142,8 +183,7 @@ async function handleUpload() {
             fileSize: file.size,
           }),
         })
-        const sig = await sigResponse.json()
-        if (!sigResponse.ok || sig.error) throw new Error(sig.error ?? 'Upload failed')
+        const sig = await readJson<UploadSignature>(sigResponse, 'Could not start the upload. Please try again.')
 
         // Step 2: upload the file bytes directly from the browser to
         // Cloudinary. This bypasses our server entirely, so large files
@@ -161,10 +201,7 @@ async function handleUpload() {
           `https://api.cloudinary.com/v1_1/${sig.cloudName}/${sig.resourceType}/upload`,
           { method: 'POST', body: cdForm }
         )
-        const cdResult = await cdResponse.json()
-        if (!cdResponse.ok || cdResult.error) {
-          throw new Error(cdResult.error?.message ?? 'Upload to storage failed. Please try again.')
-        }
+        const cdResult = await readJson<CloudinaryUpload>(cdResponse, 'Upload to storage failed. Please try again.')
 
         // Step 3: tell our server the upload succeeded so it can save the
         // media record. This is another small JSON request.
@@ -182,12 +219,11 @@ async function handleUpload() {
           }),
         })
 
-        const data = await response.json()
-        if (!response.ok || data.error) throw new Error(data.error ?? 'Upload failed')
+        await readJson<{ mediaId: string }>(response, 'Could not save the upload. Please try again.')
       }
       setDone(true)
-    } catch (err: any) {
-      setError(err.message ?? 'Upload failed. Please try again.')
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'Upload failed. Please try again.')
     }
 
     setUploading(false)

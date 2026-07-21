@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit'
 import { cloudinary, CLOUDINARY_ROOT } from '@/lib/cloudinary'
 import {
   isOriginAllowed,
+  checkRateLimit,
   avatarRatelimit,
   MAX_AVATAR_SIZE_MB,
   classifyFile,
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 
-  const { success, limit, remaining, reset } = await avatarRatelimit.limit(user.id)
+  const { success, limit, remaining, reset } = await checkRateLimit(avatarRatelimit, user.id)
   if (!success) {
     await logAudit({ event_type: 'avatar_upload_rate_limited', user_id: user.id, ip })
     return NextResponse.json(

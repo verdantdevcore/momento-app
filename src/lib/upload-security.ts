@@ -121,6 +121,37 @@ export const faceSearchRatelimit = new Ratelimit({
   prefix: 'ratelimit:face-search',
 })
 
+export type RateLimitResult = {
+  success: boolean
+  limit: number
+  remaining: number
+  reset: number
+}
+
+/**
+ * Runs a limiter, letting the request through if the limiter itself is
+ * unreachable.
+ *
+ * Fails *open*, for the same reason isHostInactive does: this is abuse
+ * control, not an authorisation boundary. Every call site invoked
+ * `.limit()` outside its try/catch, so when the Redis behind it stopped
+ * resolving the rejection escaped the route handler and Next returned a
+ * non-JSON 500 — taking uploads, avatars and face search down platform-wide
+ * and surfacing to guests as whatever their browser said about the
+ * unparseable body. Briefly not rate-limiting is the far cheaper failure.
+ */
+export async function checkRateLimit(
+  limiter: Ratelimit,
+  identifier: string
+): Promise<RateLimitResult> {
+  try {
+    return await limiter.limit(identifier)
+  } catch (error) {
+    console.error('[upload-security] rate limiter unavailable, allowing request:', error)
+    return { success: true, limit: 0, remaining: 0, reset: Date.now() }
+  }
+}
+
 // Azure Face rejects inline images above 6MB. The browser downscales before
 // sending, so anything near this is a client that skipped that step.
 export const MAX_SELFIE_SIZE_MB = 5

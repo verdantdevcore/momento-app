@@ -6,6 +6,7 @@ import { cloudinary, eventFolder } from '@/lib/cloudinary'
 import {
   isOriginAllowed,
   isHostInactive,
+  checkRateLimit,
   signatureRatelimit,
   UUID_RE,
   MAX_SIZE_MB,
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Origin not allowed' }, { status: 403 })
   }
 
-  const { success, limit, remaining, reset } = await signatureRatelimit.limit(ip)
+  const { success, limit, remaining, reset } = await checkRateLimit(signatureRatelimit, ip)
   if (!success) {
     await logAudit({ event_type: 'upload_rate_limited', ip })
     return NextResponse.json(
