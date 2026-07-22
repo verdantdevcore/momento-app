@@ -59,7 +59,7 @@ function FAQItem({ item, index }: { item: (typeof FAQS)[0]; index: number }) {
       style={{
         border: open ? "1.5px solid rgba(85,107,47,0.25)" : "1.5px solid rgba(0,0,0,0.06)",
         background: open ? "#f3f7ee" : "#fff",
-        transition: "background 0.25s, border-color 0.25s",
+        transition: "background 0.25s, border-color 0.25s, filter 0.15s",
       }}
     >
       <button

@@ -138,7 +138,7 @@ export function Footer() {
             <span key={link.label} className="flex items-center gap-4">
               <Link
                 href={link.href}
-                style={{ fontSize: "0.75rem", color: "rgba(247,231,206,0.3)", textDecoration: "none", transition: "color 0.2s" }}
+                style={{ fontSize: "0.75rem", color: "rgba(247,231,206,0.3)", textDecoration: "none", transition: "color 0.2s, filter 0.15s" }}
                 onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "rgba(247,231,206,0.6)")}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "rgba(247,231,206,0.3)")}
               >

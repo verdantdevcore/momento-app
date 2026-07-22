@@ -69,7 +69,7 @@ export function Footer({ variant = 'default' }: FooterProps) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={label}
-              style={{ width: '32px', height: '32px', borderRadius: '0.5rem', border: '1px solid var(--border)', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', transition: 'color 0.15s' }}
+              style={{ width: '32px', height: '32px', borderRadius: '0.5rem', border: '1px solid var(--border)', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', transition: 'color 0.15s, filter 0.15s' }}
               onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
               onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-dim)')}
             >

@@ -175,6 +175,45 @@ small, .text-sm { font-size: 0.875rem; }
 input, textarea, button { font-family: inherit; font-size: 1rem; }
 a { color: inherit; text-decoration: none; }
 
+/* ── Button/link hover ──
+   Every button in the app is styled inline, so a rule naming a colour would
+   lose to the inline style unless it were !important — on all 100+ of them.
+   filter is the one property no component sets inline, so it can carry the
+   hover state for the whole app at once, and being a multiplier it needs to
+   know nothing about the button's own colours: the filled accent lifts, the
+   ghost buttons' label and border lift with it.
+
+   Light mode darkens rather than brightens, since its buttons sit at the pale
+   end already and brightening them would wash out instead of respond.
+
+   Guarded on (hover: hover) so a tap on a phone doesn't leave the state
+   painted on until the next tap elsewhere. */
+:root            { --hover-shade: brightness(1.22); }
+[data-theme="light"] { --hover-shade: brightness(0.9); }
+
+button, [role="button"], a {
+  transition: filter 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):not([aria-disabled="true"]):hover,
+  [role="button"]:not([aria-disabled="true"]):hover,
+  a[href]:hover {
+    filter: var(--hover-shade);
+  }
+}
+
+/* Pressed state is worth having on touch too — it is the only feedback a
+   phone gets, and unlike hover it ends when the finger lifts. */
+button:not(:disabled):not([aria-disabled="true"]):active,
+[role="button"]:not([aria-disabled="true"]):active,
+a[href]:active {
+  filter: var(--hover-shade) brightness(0.94);
+}
+
+button { cursor: pointer; }
+button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
+
 /* ── Global animations ── */
 @keyframes spin       { to { transform: rotate(360deg); } }
 @keyframes fadeIn     { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }

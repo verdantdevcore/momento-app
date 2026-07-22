@@ -1229,7 +1229,7 @@ export default function AdminPage() {
                 fontSize: '0.6rem', fontWeight: 700,
                 letterSpacing: '0.04em', textTransform: 'uppercase',
                 borderTop: activeSection === id ? '2px solid var(--accent)' : '2px solid transparent',
-                transition: 'color 0.15s ease, border-color 0.15s ease',
+                transition: 'color 0.15s ease, border-color 0.15s ease, filter 0.15s ease',
               }}
             >
               <span style={{ fontSize: '1.125rem', lineHeight: 1 }}>{icon}</span>
