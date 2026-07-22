@@ -6,6 +6,14 @@ import { Hero } from '@/components/use-cases/wedding-photo-sharing-app/Hero'
 import { TrustMetrics } from '@/components/use-cases/wedding-photo-sharing-app/TrustMetrics'
 import { ProblemSection } from '@/components/use-cases/wedding-photo-sharing-app/ProblemSection'
 import { SolutionSection } from '@/components/use-cases/wedding-photo-sharing-app/SolutionSection'
+import { FeaturesGrid } from '@/components/use-cases/wedding-photo-sharing-app/FeaturesGrid'
+import { InteractiveGallery } from '@/components/use-cases/wedding-photo-sharing-app/InteractiveGallery'
+import { HowItWorks } from '@/components/use-cases/wedding-photo-sharing-app/HowItWorks'
+import { WeddingStationery } from '@/components/use-cases/wedding-photo-sharing-app/WeddingStationery'
+import { Testimonials } from '@/components/use-cases/wedding-photo-sharing-app/Testimonials'
+import { ComparisonTable } from '@/components/use-cases/wedding-photo-sharing-app/ComparisonTable'
+import { FaqAccordion } from '@/components/use-cases/wedding-photo-sharing-app/FaqAccordion'
+import { FinalCta } from '@/components/use-cases/wedding-photo-sharing-app/FinalCta'
 
 // The design gives this page an editorial serif for card and quote headings.
 // Declared here rather than in the root layout so only this route pays for it.
@@ -31,6 +39,16 @@ export default function WeddingPhotoSharingAppPage() {
       <TrustMetrics />
       <ProblemSection />
       <SolutionSection />
+      <FeaturesGrid />
+      <InteractiveGallery />
+      <div id="how-it-works">
+        <HowItWorks />
+      </div>
+      <WeddingStationery />
+      <Testimonials />
+      <ComparisonTable />
+      <FaqAccordion />
+      <FinalCta />
       <Footer />
     </main>
   )
