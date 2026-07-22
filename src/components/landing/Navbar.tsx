@@ -1,16 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { List, X } from "@phosphor-icons/react";
+import { List, X, CaretDown } from "@phosphor-icons/react";
 import { GreenLogo, FooterLogo } from "./Logo";
 import { createClient } from "@/lib/supabase/client";
 
-const links = [
+type NavChild = { label: string; href: string };
+type NavLink =
+  | { label: string; hash: string }
+  | { label: string; href: string }
+  | { label: string; children: NavChild[] };
+
+const isHashLink = (l: NavLink): l is { label: string; hash: string } => "hash" in l;
+const isDropdown = (l: NavLink): l is { label: string; children: NavChild[] } => "children" in l;
+
+const useCases: NavChild[] = [
+  { label: "QR code wedding photo sharing", href: "/use-cases/qr-code-wedding-photo-sharing" },
+  { label: "Event photo sharing app", href: "/use-cases/event-photo-sharing-app" },
+  { label: "Collect wedding guest photos", href: "/use-cases/collect-wedding-guest-photos" },
+  { label: "Birthday party photo sharing", href: "/use-cases/birthday-party-photo-sharing" },
+  { label: "Event QR code", href: "/use-cases/event-qr-code" },
+  { label: "Wedding guest photo upload", href: "/use-cases/wedding-guest-photo-upload" },
+  { label: "Shared wedding album", href: "/use-cases/shared-wedding-album" },
+];
+
+const links: NavLink[] = [
   { label: "How It Works", hash: "#how-it-works" },
   { label: "Features", hash: "#features" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Use Cases", children: useCases },
   { label: "FAQs", hash: "#faqs" },
+  { label: "Contact", href: "/contact" },
 ];
 
 const facts = [
@@ -54,6 +76,9 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [factIndex, setFactIndex] = useState(0);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [openMobileGroup, setOpenMobileGroup] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -89,6 +114,23 @@ export function Navbar() {
     return () => { document.body.style.overflow = ""; };
   }, [menuOpen]);
 
+  // Close the desktop dropdown on outside click or Escape
+  useEffect(() => {
+    if (!openDropdown) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (!dropdownRef.current?.contains(e.target as Node)) setOpenDropdown(null);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenDropdown(null);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [openDropdown]);
+
   function handleSectionLink(hash: string) {
     setMenuOpen(false);
     if (pathname === "/") {
@@ -98,7 +140,9 @@ export function Navbar() {
     }
   }
 
-  const isLegalPage = pathname !== "/";
+  // Any route other than the home page gets the solid chrome, since only
+  // the home page has a hero for the transparent nav to sit over.
+  const isSubPage = pathname !== "/";
   const year = new Date().getFullYear();
 
   return (
@@ -106,9 +150,9 @@ export function Navbar() {
       <nav
         className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
         style={{
-          background: scrolled || isLegalPage ? "rgba(255,255,255,0.97)" : "transparent",
-          backdropFilter: scrolled || isLegalPage ? "blur(12px)" : "none",
-          boxShadow: scrolled || isLegalPage ? "0 1px 24px rgba(85,107,47,0.08)" : "none",
+          background: scrolled || isSubPage ? "rgba(255,255,255,0.97)" : "transparent",
+          backdropFilter: scrolled || isSubPage ? "blur(12px)" : "none",
+          boxShadow: scrolled || isSubPage ? "0 1px 24px rgba(85,107,47,0.08)" : "none",
         }}
       >
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -117,17 +161,81 @@ export function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-8">
-            {links.map((link) => (
-              <button
-                key={link.label}
-                onClick={() => handleSectionLink(link.hash)}
-                className="bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70"
-                style={{ fontWeight: 500, fontSize: "0.95rem", color: "#556B2F" }}
-              >
-                {link.label}
-              </button>
-            ))}
+          <div className="hidden md:flex items-center gap-5">
+            {links.map((link) => {
+              if (isDropdown(link)) {
+                const open = openDropdown === link.label;
+                return (
+                  <div key={link.label} className="relative" ref={open ? dropdownRef : undefined}>
+                    <button
+                      onClick={() => setOpenDropdown(open ? null : link.label)}
+                      aria-expanded={open}
+                      aria-haspopup="true"
+                      className="bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70 flex items-center gap-1"
+                      style={{ fontWeight: 500, fontSize: "0.875rem", color: "#556B2F" }}
+                    >
+                      {link.label}
+                      <CaretDown
+                        size={12}
+                        weight="bold"
+                        style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }}
+                      />
+                    </button>
+                    {open && (
+                      <div
+                        style={{
+                          position: "absolute", top: "calc(100% + 0.75rem)", left: "50%", transform: "translateX(-50%)",
+                          minWidth: "17rem", background: "#fff", borderRadius: "0.875rem",
+                          boxShadow: "0 8px 32px rgba(85,107,47,0.14)", border: "1px solid rgba(85,107,47,0.1)",
+                          padding: "0.5rem", display: "flex", flexDirection: "column", zIndex: 60,
+                        }}
+                      >
+                        {link.children.map((child) => (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={() => setOpenDropdown(null)}
+                            style={{ padding: "0.625rem 0.75rem", fontSize: "0.875rem", fontWeight: 500, color: "#333", textDecoration: "none", borderRadius: "0.5rem", transition: "background 0.15s" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(85,107,47,0.06)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                          >
+                            {child.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              if (isHashLink(link)) {
+                return (
+                  <button
+                    key={link.label}
+                    onClick={() => handleSectionLink(link.hash)}
+                    className="bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70"
+                    style={{ fontWeight: 500, fontSize: "0.875rem", color: "#556B2F" }}
+                  >
+                    {link.label}
+                  </button>
+                );
+              }
+
+              return (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="transition-opacity hover:opacity-70"
+                  style={{ fontWeight: 500, fontSize: "0.875rem", color: "#556B2F", textDecoration: "none" }}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Desktop auth actions */}
+          <div className="hidden md:flex items-center gap-4">
             {isSignedIn ? (
               <Link
                 href="/dashboard"
@@ -140,7 +248,7 @@ export function Navbar() {
               <>
                 <Link
                   href="/auth/login"
-                  style={{ fontWeight: 500, fontSize: "0.95rem", color: "#556B2F", textDecoration: "none" }}
+                  style={{ fontWeight: 500, fontSize: "0.875rem", color: "#556B2F", textDecoration: "none" }}
                   className="transition-opacity hover:opacity-70"
                 >
                   Sign in
@@ -209,17 +317,74 @@ export function Navbar() {
 
         {/* Nav links */}
         <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          {links.map((link) => (
-            <button
-              key={link.label}
-              onClick={() => handleSectionLink(link.hash)}
-              style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: "0.875rem 0.75rem", fontSize: "1.0625rem", fontWeight: 600, color: "#333", borderRadius: "0.75rem", transition: "background 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(85,107,47,0.06)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "none")}
-            >
-              {link.label}
-            </button>
-          ))}
+          {links.map((link) => {
+            const itemStyle = { background: "none", border: "none", cursor: "pointer", textAlign: "left" as const, padding: "0.875rem 0.75rem", fontSize: "1.0625rem", fontWeight: 600, color: "#333", borderRadius: "0.75rem", transition: "background 0.15s, filter 0.15s", textDecoration: "none", display: "block" };
+
+            if (isDropdown(link)) {
+              const open = openMobileGroup === link.label;
+              return (
+                <div key={link.label}>
+                  <button
+                    onClick={() => setOpenMobileGroup(open ? null : link.label)}
+                    aria-expanded={open}
+                    style={{ ...itemStyle, width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(85,107,47,0.06)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                  >
+                    {link.label}
+                    <CaretDown
+                      size={14}
+                      weight="bold"
+                      style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }}
+                    />
+                  </button>
+                  {open && (
+                    <div style={{ display: "flex", flexDirection: "column", paddingLeft: "0.75rem" }}>
+                      {link.children.map((child) => (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={() => setMenuOpen(false)}
+                          style={{ ...itemStyle, fontSize: "0.9375rem", fontWeight: 500, color: "#666" }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "rgba(85,107,47,0.06)")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                        >
+                          {child.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            if (isHashLink(link)) {
+              return (
+                <button
+                  key={link.label}
+                  onClick={() => handleSectionLink(link.hash)}
+                  style={itemStyle}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(85,107,47,0.06)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                >
+                  {link.label}
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={link.label}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                style={itemStyle}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(85,107,47,0.06)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "none")}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
 
           <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
             {isSignedIn ? (
@@ -312,7 +477,7 @@ export function Navbar() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={label}
-              style={{ width: "36px", height: "36px", borderRadius: "0.625rem", background: "rgba(85,107,47,0.08)", color: "#556B2F", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", transition: "background 0.15s" }}
+              style={{ width: "36px", height: "36px", borderRadius: "0.625rem", background: "rgba(85,107,47,0.08)", color: "#556B2F", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", transition: "background 0.15s, filter 0.15s" }}
               onMouseEnter={e => (e.currentTarget.style.background = "rgba(85,107,47,0.18)")}
               onMouseLeave={e => (e.currentTarget.style.background = "rgba(85,107,47,0.08)")}
             >
@@ -333,7 +498,7 @@ export function Navbar() {
                 key={link.label}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
-                style={{ fontSize: "0.75rem", color: "#888", textDecoration: "none", transition: "color 0.15s" }}
+                style={{ fontSize: "0.75rem", color: "#888", textDecoration: "none", transition: "color 0.15s, filter 0.15s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "#556B2F")}
                 onMouseLeave={e => (e.currentTarget.style.color = "#888")}
               >
