@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { QrCode, Infinity as InfinityIcon, VideoCamera, Sparkle, Browser, Lock, Lightning, DownloadSimple } from "@phosphor-icons/react";
-import { SectionHeading } from "./SectionHeading";
+import { SectionHeading } from "../shared/SectionHeading";
 
 const FEATURES = [
   { icon: QrCode, iconBg: "#F0F4E8", iconColor: "#556B2F", title: "QR Upload", body: "One scan and guests are uploading — no friction, no accounts." },

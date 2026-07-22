@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { motion } from "motion/react";
 import { Star } from "@phosphor-icons/react";
-import { SectionHeading } from "./SectionHeading";
+import { SectionHeading } from "../shared/SectionHeading";
 
 const TESTIMONIALS = [
   {

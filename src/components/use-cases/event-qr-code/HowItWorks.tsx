@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { CalendarPlus, QrCode, Printer, UploadSimple } from "@phosphor-icons/react";
-import { SectionHeading } from "./SectionHeading";
+import { SectionHeading } from "../shared/SectionHeading";
 
 const STEPS = [
   {

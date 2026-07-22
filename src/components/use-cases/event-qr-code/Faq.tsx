@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { CaretDown } from "@phosphor-icons/react";
-import { SectionHeading } from "./SectionHeading";
+import { SectionHeading } from "../shared/SectionHeading";
 
 /**
  * The Figma frame only specifies the collapsed state, so it supplies the six

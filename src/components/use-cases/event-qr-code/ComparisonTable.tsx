@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { Check, X, Minus } from "@phosphor-icons/react";
-import { SectionHeading } from "./SectionHeading";
+import { SectionHeading } from "../shared/SectionHeading";
 
 type Cell = "yes" | "no" | "partial";
 

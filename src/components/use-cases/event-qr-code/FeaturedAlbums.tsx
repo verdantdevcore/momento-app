@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { motion } from "motion/react";
 import { Images } from "@phosphor-icons/react";
-import { SectionHeading } from "./SectionHeading";
+import { SectionHeading } from "../shared/SectionHeading";
 
 const ALBUMS = [
   { src: "/use-cases/album-annual-conference.jpg", title: "Annual Conference", sub: "Tech Summit 2025", photos: "312 photos" },

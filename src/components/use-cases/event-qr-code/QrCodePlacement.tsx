@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { Door, ClipboardText, Table, Monitor, BookOpen, IdentificationBadge, Camera, SignOut } from "@phosphor-icons/react";
-import { SectionHeading } from "./SectionHeading";
+import { SectionHeading } from "../shared/SectionHeading";
 
 const PLACEMENTS = [
   { icon: Door, title: "Welcome Sign", body: "Greet guests at the entrance with a branded QR display" },

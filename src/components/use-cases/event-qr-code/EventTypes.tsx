@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "motion/react";
-import { SectionHeading } from "./SectionHeading";
+import { SectionHeading } from "../shared/SectionHeading";
 
 const EVENT_TYPES = [
   { src: "/use-cases/conferences.jpg", title: "Conferences", body: "Capture every keynote, workshop, and networking moment." },
