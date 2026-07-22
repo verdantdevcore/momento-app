@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Navbar } from '@/components/landing/Navbar'
 import { Footer } from '@/components/landing/Footer'
 import { Hero } from '@/components/use-cases/wedding-photo-sharing-app/Hero'
+import { TrustMetrics } from '@/components/use-cases/wedding-photo-sharing-app/TrustMetrics'
 
 export const metadata: Metadata = {
   title: 'Wedding Photo Sharing App | Momento App',
@@ -15,6 +16,7 @@ export default function WeddingPhotoSharingAppPage() {
     <main>
       <Navbar />
       <Hero />
+      <TrustMetrics />
       <Footer />
     </main>
   )
