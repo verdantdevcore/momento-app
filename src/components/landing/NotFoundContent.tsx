@@ -83,7 +83,7 @@ function DecorCircle({ style }: { style?: React.CSSProperties }) {
 export function NotFoundContent() {
   return (
     <div style={{ fontFamily: "var(--font-urbanist, 'Urbanist', sans-serif)" }}>
-      <Navbar />
+      <Navbar solid />
 
       <main
         style={{

@@ -13,7 +13,7 @@ interface LegalLayoutProps {
 export function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
   return (
     <div style={{ fontFamily: "var(--font-urbanist, 'Urbanist', sans-serif)" }}>
-      <Navbar />
+      <Navbar solid />
 
       {/* Header */}
       <div className="pt-28 pb-12 px-6" style={{ background: "#556B2F" }}>

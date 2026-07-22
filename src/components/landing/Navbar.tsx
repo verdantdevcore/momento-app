@@ -74,7 +74,11 @@ function XIcon() {
   );
 }
 
-export function Navbar() {
+// `solid` forces the opaque white chrome from the first paint — for pages with
+// no hero for a transparent nav to sit over (legal pages' green band, the 404).
+// Left off, the nav is transparent over the hero and turns solid once scrolled,
+// which is what the marketing/use-case pages and the home page want.
+export function Navbar({ solid = false }: { solid?: boolean } = {}) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [factIndex, setFactIndex] = useState(0);
@@ -143,9 +147,9 @@ export function Navbar() {
     }
   }
 
-  // Any route other than the home page gets the solid chrome, since only
-  // the home page has a hero for the transparent nav to sit over.
-  const isSubPage = pathname !== "/";
+  // Solid once the user scrolls past the hero, or from the start on hero-less
+  // pages that opt in via `solid`.
+  const showSolid = scrolled || solid;
   const year = new Date().getFullYear();
 
   return (
@@ -153,9 +157,9 @@ export function Navbar() {
       <nav
         className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
         style={{
-          background: scrolled || isSubPage ? "rgba(255,255,255,0.97)" : "transparent",
-          backdropFilter: scrolled || isSubPage ? "blur(12px)" : "none",
-          boxShadow: scrolled || isSubPage ? "0 1px 24px rgba(85,107,47,0.08)" : "none",
+          background: showSolid ? "rgba(255,255,255,0.97)" : "transparent",
+          backdropFilter: showSolid ? "blur(12px)" : "none",
+          boxShadow: showSolid ? "0 1px 24px rgba(85,107,47,0.08)" : "none",
         }}
       >
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
