@@ -16,14 +16,17 @@ type NavLink =
 const isHashLink = (l: NavLink): l is { label: string; hash: string } => "hash" in l;
 const isDropdown = (l: NavLink): l is { label: string; children: NavChild[] } => "children" in l;
 
+// Order and labels mirror the Use Cases dropdown frame in Figma, which lays
+// these out as two columns of four — first four here are the left column.
 const useCases: NavChild[] = [
-  { label: "QR code wedding photo sharing", href: "/use-cases/qr-code-wedding-photo-sharing" },
-  { label: "Event photo sharing app", href: "/use-cases/event-photo-sharing-app" },
-  { label: "Collect wedding guest photos", href: "/use-cases/collect-wedding-guest-photos" },
-  { label: "Birthday party photo sharing", href: "/use-cases/birthday-party-photo-sharing" },
-  { label: "Event QR code", href: "/use-cases/event-qr-code" },
-  { label: "Wedding guest photo upload", href: "/use-cases/wedding-guest-photo-upload" },
-  { label: "Shared wedding album", href: "/use-cases/shared-wedding-album" },
+  { label: "Wedding Photo Sharing App", href: "/use-cases/wedding-photo-sharing-app" },
+  { label: "QR Code Wedding Photo Sharing", href: "/use-cases/qr-code-wedding-photo-sharing" },
+  { label: "Collect Wedding Guest Photos", href: "/use-cases/collect-wedding-guest-photos" },
+  { label: "Birthday Party Photo Sharing", href: "/use-cases/birthday-party-photo-sharing" },
+  { label: "Event Photo Sharing App", href: "/use-cases/event-photo-sharing-app" },
+  { label: "Wedding Guest Photo Upload", href: "/use-cases/wedding-guest-photo-upload" },
+  { label: "Shared Wedding Album", href: "/use-cases/shared-wedding-album" },
+  { label: "Event QR Code Photo Upload", href: "/use-cases/event-qr-code-photo-upload" },
 ];
 
 const links: NavLink[] = [
@@ -185,22 +188,32 @@ export function Navbar() {
                       <div
                         style={{
                           position: "absolute", top: "calc(100% + 0.75rem)", left: "50%", transform: "translateX(-50%)",
-                          minWidth: "17rem", background: "#fff", borderRadius: "0.875rem",
-                          boxShadow: "0 8px 32px rgba(85,107,47,0.14)", border: "1px solid rgba(85,107,47,0.1)",
-                          padding: "0.5rem", display: "flex", flexDirection: "column", zIndex: 60,
+                          width: "34.5rem", background: "#fff", borderRadius: "1rem",
+                          boxShadow: "0 8px 32px rgba(85,107,47,0.14)", border: "1px solid rgba(85,107,47,0.08)",
+                          padding: "1.875rem", display: "flex", gap: "1.25rem", zIndex: 60,
                         }}
                       >
-                        {link.children.map((child) => (
-                          <Link
-                            key={child.href}
-                            href={child.href}
-                            onClick={() => setOpenDropdown(null)}
-                            style={{ padding: "0.625rem 0.75rem", fontSize: "0.875rem", fontWeight: 500, color: "#333", textDecoration: "none", borderRadius: "0.5rem", transition: "background 0.15s" }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(85,107,47,0.06)")}
-                            onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                        {[link.children.slice(0, 4), link.children.slice(4)].map((column, i) => (
+                          <div
+                            key={i}
+                            style={{
+                              flex: "1 0 0", minWidth: 0, display: "flex", flexDirection: "column", gap: "0.625rem",
+                              borderRight: i === 0 ? "1px solid #f8f8f8" : undefined,
+                            }}
                           >
-                            {child.label}
-                          </Link>
+                            {column.map((child) => (
+                              <Link
+                                key={child.href}
+                                href={child.href}
+                                onClick={() => setOpenDropdown(null)}
+                                style={{ padding: "0.5rem 0.625rem", fontSize: "0.875rem", lineHeight: "22px", fontWeight: 500, color: "rgba(23,23,23,0.8)", textDecoration: "none", borderRadius: "0.375rem", transition: "background 0.15s" }}
+                                onMouseEnter={e => (e.currentTarget.style.background = "rgba(85,107,47,0.06)")}
+                                onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                              >
+                                {child.label}
+                              </Link>
+                            ))}
+                          </div>
                         ))}
                       </div>
                     )}
