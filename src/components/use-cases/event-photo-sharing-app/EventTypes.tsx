@@ -17,11 +17,11 @@ const EVENT_TYPES = [
   { Icon: GraduationCap, title: "Graduations", desc: "Unite families and friends in one album — from ceremonies to celebrations.", ...GREEN, image: "/use-cases/event/graduation.jpg" },
   { Icon: Heart, title: "Family Reunions", desc: "Bring relatives together in a shared photo stream that everyone can contribute to and keep.", ...ROSE, image: "/use-cases/event/reunion.jpg" },
   { Icon: Trophy, title: "Charity Events", desc: "Capture fundraiser highlights and donor moments to use in future campaigns and reports.", ...GOLD, image: "/use-cases/event/charity-gala.jpg" },
-  { Icon: Church, title: "Church Programs", desc: "Let your congregation share worship, outreach, and ministry events in one beautiful album.", ...GREEN, image: null },
+  { Icon: Church, title: "Church Programs", desc: "Let your congregation share worship, outreach, and ministry events in one beautiful album.", ...GREEN, image: "/use-cases/event/church-programs.jpg" },
   { Icon: MusicNotes, title: "Festivals", desc: "Crowd-sourced coverage of performances, art installations, and festival atmosphere.", ...ROSE, image: "/use-cases/event/festival.jpg" },
-  { Icon: Trophy, title: "Award Ceremonies", desc: "Preserve every award, acceptance speech, and celebration photo in a curated event album.", ...GOLD, image: null },
-  { Icon: Baby, title: "Baby Showers", desc: "Let guests upload their candid shots so mom gets every sweet moment from the celebration.", ...ROSE, image: null },
-  { Icon: Chalkboard, title: "School Events", desc: "Sports days, performances, science fairs — every parent and teacher can contribute.", ...GREEN, image: null },
+  { Icon: Trophy, title: "Award Ceremonies", desc: "Preserve every award, acceptance speech, and celebration photo in a curated event album.", ...GOLD, image: "/use-cases/event/award-ceremonies.jpg" },
+  { Icon: Baby, title: "Baby Showers", desc: "Let guests upload their candid shots so mom gets every sweet moment from the celebration.", ...ROSE, image: "/use-cases/event/baby-showers.jpg" },
+  { Icon: Chalkboard, title: "School Events", desc: "Sports days, performances, science fairs — every parent and teacher can contribute.", ...GREEN, image: "/use-cases/event/school-events.jpg" },
 ];
 
 export function EventTypes() {

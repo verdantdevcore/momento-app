@@ -24,8 +24,11 @@ const FAQS = [
 export function Faq() {
   const [open, setOpen] = useState<number | null>(0);
 
+  // No bottom padding: in the design the FinalCTA sits flush against the
+  // "Still have questions?" card (frame 2:10872 is parked at the FAQ's bottom
+  // edge), so there is no white gap below this section.
   return (
-    <section id="faqs" style={{ background: "#fff", padding: "96px 24px" }}>
+    <section id="faqs" style={{ background: "#fff", padding: "96px 24px 0" }}>
       <div className="mx-auto" style={{ maxWidth: 860 }}>
         <div style={{ marginBottom: 64 }}>
           <SectionHeader
