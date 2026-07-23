@@ -43,5 +43,8 @@ next-env.d.ts
 # git
 .gitconfig-work
 
+# marketing design base exports (source of truth for page builds — never commit)
+/momento-app marketing pages updates/
+
 #pdf
 .pdf
