@@ -22,10 +22,15 @@ const ROWS: { label: string; cells: Cell[] }[] = [
   { label: "Easy Setup", cells: ["yes", "no", "no", "partial", "no"] },
 ];
 
+// The Momento App column is highlighted with a light-green tint (#F7F9F3) and
+// its checks sit in a filled dark-green circle, per the design.
+const ACCENT = "#556B2F";
+const ACCENT_TINT = "#F7F9F3";
+
 function CellMark({ state, onAccent }: { state: Cell; onAccent?: boolean }) {
   if (onAccent) {
     return (
-      <span className="inline-flex items-center justify-center rounded-full" style={{ background: "rgba(255,255,255,0.2)", width: 26, height: 26 }}>
+      <span className="inline-flex items-center justify-center rounded-full" style={{ background: ACCENT, width: 26, height: 26 }}>
         <Check size={15} weight="bold" color="#fff" />
       </span>
     );
@@ -69,25 +74,37 @@ export function ComparisonTable() {
                 <th style={{ textAlign: "left", padding: "18px 24px", fontSize: "0.875rem", fontWeight: 700, color: "#1A1A1A" }}>
                   Feature
                 </th>
-                {COLUMNS.map((c) => (
-                  <th
-                    key={c}
-                    style={{
-                      padding: "18px 12px",
-                      fontSize: "0.8125rem",
-                      fontWeight: 700,
-                      textAlign: "center",
-                      color: c === "Momento App" ? "#fff" : "#666",
-                      background: c === "Momento App" ? "#556B2F" : "transparent",
-                    }}
-                  >
-                    {c}
-                  </th>
-                ))}
+                {COLUMNS.map((c) => {
+                  const accent = c === "Momento App";
+                  return (
+                    <th
+                      key={c}
+                      style={{
+                        padding: "18px 12px",
+                        fontSize: "0.8125rem",
+                        fontWeight: 700,
+                        textAlign: "center",
+                        color: accent ? undefined : "#666",
+                        background: accent ? ACCENT_TINT : "transparent",
+                      }}
+                    >
+                      {accent ? (
+                        <span
+                          className="inline-flex items-center justify-center rounded-full"
+                          style={{ background: ACCENT, color: "#fff", padding: "8px 18px" }}
+                        >
+                          {c}
+                        </span>
+                      ) : (
+                        c
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {ROWS.map((r, ri) => (
+              {ROWS.map((r) => (
                 <tr key={r.label} style={{ borderTop: "1px solid #F3F4F6" }}>
                   <td style={{ padding: "14px 24px", fontSize: "0.875rem", fontWeight: 500, color: "#1A1A1A", whiteSpace: "nowrap" }}>
                     {r.label}
@@ -98,8 +115,7 @@ export function ComparisonTable() {
                       style={{
                         padding: "14px 12px",
                         textAlign: "center",
-                        background: ci === 0 ? "#556B2F" : "transparent",
-                        borderBottomLeftRadius: ci === 0 && ri === ROWS.length - 1 ? 0 : undefined,
+                        background: ci === 0 ? ACCENT_TINT : "transparent",
                       }}
                     >
                       <CellMark state={state} onAccent={ci === 0} />

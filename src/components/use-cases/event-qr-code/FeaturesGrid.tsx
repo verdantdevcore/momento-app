@@ -1,15 +1,15 @@
 "use client";
 
 import { motion } from "motion/react";
-import { QrCode, Infinity as InfinityIcon, VideoCamera, Sparkle, Browser, Lock, Lightning, DownloadSimple } from "@phosphor-icons/react";
+import { QrCode, Infinity as InfinityIcon, VideoCamera, Image as ImageIcon, Globe, Lock, Lightning, DownloadSimple } from "@phosphor-icons/react";
 import { SectionHeading } from "./SectionHeading";
 
 const FEATURES = [
   { icon: QrCode, iconBg: "#F0F4E8", iconColor: "#556B2F", title: "QR Upload", body: "One scan and guests are uploading — no friction, no accounts." },
   { icon: InfinityIcon, iconBg: "#E8F0F8", iconColor: "#4A7CA8", title: "Unlimited Uploads", body: "No limits on photos, guests, or storage. Upload as much as you want." },
   { icon: VideoCamera, iconBg: "#F0EBF8", iconColor: "#7A5EA8", title: "Video Support", body: "Guests can upload video clips alongside photos in the same album." },
-  { icon: Sparkle, iconBg: "#F7E7CE", iconColor: "#B5803A", title: "High Resolution", body: "Every photo is stored in full resolution — no compression, no quality loss." },
-  { icon: Browser, iconBg: "#E6F4EF", iconColor: "#2E8B6F", title: "Browser-Based Upload", body: "Works on any device with a browser. iOS, Android, desktop — all welcome." },
+  { icon: ImageIcon, iconBg: "#F7E7CE", iconColor: "#B5803A", title: "High Resolution", body: "Every photo is stored in full resolution — no compression, no quality loss." },
+  { icon: Globe, iconBg: "#E6F4EF", iconColor: "#2E8B6F", title: "Browser-Based Upload", body: "Works on any device with a browser. iOS, Android, desktop — all welcome." },
   { icon: Lock, iconBg: "#FDECEA", iconColor: "#C1554A", title: "Secure Private Album", body: "Your album is private by default. Control who can view and upload." },
   { icon: Lightning, iconBg: "#FEF3E2", iconColor: "#C8862B", title: "Instant Sync", body: "Photos appear in the shared album the moment they're uploaded." },
   { icon: DownloadSimple, iconBg: "#F0F4E8", iconColor: "#556B2F", title: "Download Anytime", body: "Export your entire album as a ZIP file whenever you're ready." },
