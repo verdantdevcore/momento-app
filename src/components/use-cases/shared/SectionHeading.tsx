@@ -35,15 +35,19 @@ export function SectionHeading({
         {badge}
       </span>
 
+      {/* Figma section titles: 48px Urbanist SemiBold, line-height 55.2 (1.15),
+          letter-spacing 0. Widest single-line title in the design is 864px
+          ("Built for the perfect wedding experience"), so cap at 896 and let
+          longer titles wrap. */}
       <h2
-        className="mt-5 max-w-3xl"
-        style={{ fontSize: "clamp(1.875rem, 3.4vw, 2.75rem)", fontWeight: 700, color: "#1A1A1A", lineHeight: 1.2 }}
+        className="mt-4"
+        style={{ maxWidth: 896, fontSize: "clamp(1.875rem, 3.4vw, 3rem)", fontWeight: 600, color: "#1A1A1A", lineHeight: 1.15, letterSpacing: 0 }}
       >
         {title}
       </h2>
 
       {subtitle && (
-        <p className="mt-4 max-w-xl" style={{ fontSize: "1.0625rem", fontWeight: 400, color: "#666", lineHeight: "25.5px" }}>
+        <p className="mt-4" style={{ maxWidth: 576, fontSize: "1.05rem", fontWeight: 400, color: "#6B6B6B", lineHeight: "27.3px" }}>
           {subtitle}
         </p>
       )}

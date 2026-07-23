@@ -68,13 +68,24 @@ export function Hero() {
         className="absolute inset-0 pointer-events-none"
         style={{ background: "linear-gradient(149deg, rgba(247,231,206,0.4) 0%, #FDFAF6 50%, rgba(232,240,216,0.3) 100%)" }}
       />
-      {/* The design layers faint floral line art here at 10% opacity; approximated
-          with soft tints rather than vendoring nine decorative SVGs. Kept small and
-          low-opacity so they tint the corners instead of greying the whole section. */}
-      <div className="absolute rounded-full pointer-events-none" style={{ background: "rgba(247,231,206,0.45)", width: 320, height: 320, top: -110, right: -110, filter: "blur(70px)" }} />
-      <div className="absolute rounded-full pointer-events-none" style={{ background: "rgba(232,240,216,0.5)", width: 280, height: 280, bottom: -90, left: -110, filter: "blur(70px)" }} />
+      {/* Floral petal clusters exported from the Figma frame (nodes 2:3421 / 2:3429);
+          opacity is baked into the SVGs at 10%. Top-right flush, bottom-left flush. */}
+      <img
+        src="/use-cases/wedding/hero-floral-tr.svg"
+        alt=""
+        aria-hidden
+        className="absolute pointer-events-none select-none"
+        style={{ width: 500, top: 0, right: 0 }}
+      />
+      <img
+        src="/use-cases/wedding/hero-floral-bl.svg"
+        alt=""
+        aria-hidden
+        className="absolute pointer-events-none select-none"
+        style={{ width: 400, bottom: 0, left: 0 }}
+      />
 
-      <div className="relative max-w-6xl mx-auto px-6 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center pt-32 pb-20 lg:pt-36">
+      <div className="relative max-w-7xl mx-auto px-8 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center pt-32 pb-20 lg:pt-36">
         {/* Copy */}
         <motion.div
           className="flex flex-col gap-6"
@@ -95,7 +106,7 @@ export function Hero() {
           </div>
 
           {/* Inline type: globals.css has unlayered h1..h5 rules that beat Tailwind utilities. */}
-          <h1 style={{ fontSize: "clamp(2.5rem, 5.2vw, 4rem)", fontWeight: 800, color: "#1A1A1A", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
+          <h1 style={{ fontSize: "clamp(2.5rem, 5.2vw, 4rem)", fontWeight: 800, color: "#1A1A1A", lineHeight: 1.1, letterSpacing: 0 }}>
             The Wedding Photo Sharing App That <span style={{ color: "#556B2F" }}>Captures Every Memory</span>
           </h1>
 
