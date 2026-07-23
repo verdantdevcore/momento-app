@@ -23,8 +23,11 @@ function PhoneMockup() {
   return (
     <div
       className="relative bg-white overflow-hidden"
-      style={{ width: 288, maxWidth: "100%", border: "6.8px solid #1A1A1A", borderRadius: 40, padding: 6.8, boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" }}
+      style={{ width: 288, maxWidth: "100%", border: "6.8px solid #1A1A1A", borderRadius: 40, boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" }}
     >
+      {/* Status bar sits flush to the frame stroke (Figma phone 2:3488 has no
+          padding), so its black merges with the border into one rounded top —
+          no white gap around the notch. */}
       <div className="flex items-center justify-center" style={{ background: "#1A1A1A", height: 28 }}>
         <span style={{ background: "#333", width: 80, height: 16, borderRadius: 999 }} />
       </div>
