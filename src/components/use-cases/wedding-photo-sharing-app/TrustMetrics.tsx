@@ -14,9 +14,9 @@ export function TrustMetrics() {
   return (
     <section
       className="bg-white"
-      style={{ borderTop: "1.36px solid rgba(247,231,206,0.8)", borderBottom: "1.36px solid rgba(247,231,206,0.8)", paddingTop: 81, paddingBottom: 81 }}
+      style={{ borderTop: "1.36px solid rgba(247,231,206,0.8)", borderBottom: "1.36px solid rgba(247,231,206,0.8)", paddingTop: 80, paddingBottom: 80 }}
     >
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-8">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
           {METRICS.map((m, i) => {
             const Icon = m.icon;

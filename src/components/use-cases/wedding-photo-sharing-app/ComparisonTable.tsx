@@ -49,7 +49,7 @@ function Mark({ value }: { value: boolean | string }) {
 export function ComparisonTable() {
   return (
     <section className="py-28 bg-white">
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-8">
         <SectionHeading
           badge="The clear choice"
           title={

@@ -8,41 +8,29 @@ import { SectionHeading } from "../shared/SectionHeading";
 const REVIEWS = [
   {
     highlight: "800+ photos from guests",
-    highlightBg: "#F7E7CE",
-    highlightColor: "#7A6533",
     quote:
       "Momento App was an absolute game-changer for our wedding. We ended up with over 800 photos from our guests — moments we would have never seen otherwise. Setting up the QR code table cards took 10 minutes. Our guests loved how easy it was to use.",
     name: "Emma & James Richardson",
     meta: "Newlyweds · London, UK",
     role: "Wedding Couple",
-    roleBg: "#F7E7CE",
-    roleColor: "#7A6533",
     avatar: "/use-cases/wedding/avatar-1.jpg",
   },
   {
     highlight: "Recommended to 50+ couples",
-    highlightBg: "#F7E7CE",
-    highlightColor: "#7A6533",
     quote:
       "I recommend Momento App to every couple I work with. It's the most seamless guest photo collection tool I've seen. No more asking guests to email photos or join group chats. The QR code does all the work and the gallery is beautiful.",
     name: "Sarah Collins",
     meta: "Wedding Planner · New York, USA",
     role: "Wedding Planner",
-    roleBg: "#F7E7CE",
-    roleColor: "#7A6533",
     avatar: "/use-cases/wedding/avatar-2.jpg",
   },
   {
     highlight: "Used at 30+ weddings",
-    highlightBg: "#E8F0D8",
-    highlightColor: "#556B2F",
     quote:
       "As an event planner, I was skeptical at first — but Momento App has become an essential part of my wedding packages. Guest photos complement my professional shots perfectly. The high-res uploads and easy download make the final delivery so much richer.",
     name: "Marcus Webb",
     meta: "Professional Photographer · Sydney, Australia",
     role: "Event Planner",
-    roleBg: "#E8F0D8",
-    roleColor: "#556B2F",
     avatar: "/use-cases/wedding/avatar-3.jpg",
   },
 ];
@@ -60,7 +48,7 @@ function Stars({ size }: { size: number }) {
 export function Testimonials() {
   return (
     <section className="py-28" style={{ background: "#FDFAF6" }}>
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-8">
         <SectionHeading
           badge="Love stories"
           title={
@@ -102,9 +90,11 @@ export function Testimonials() {
                 <Stars size={13} />
               </span>
 
+              {/* All three highlight pills are champagne (Figma 2:4229/2:4293):
+                  #F7E7CE fill, #E8D4AE border, #556B2F text. */}
               <span
                 className="inline-flex items-center gap-1.5 rounded-full self-start mt-4"
-                style={{ background: r.highlightBg, color: r.highlightColor, fontSize: "0.8125rem", fontWeight: 600, lineHeight: "18px", padding: "6px 12px" }}
+                style={{ background: "#F7E7CE", border: "1.36px solid #E8D4AE", color: "#556B2F", fontSize: "0.75rem", fontWeight: 600, lineHeight: "16px", padding: "6px 12px" }}
               >
                 <Check size={12} weight="bold" />
                 {r.highlight}
@@ -129,9 +119,11 @@ export function Testimonials() {
                     {r.meta}
                   </span>
                 </span>
+                {/* All three role tags are sage (Figma 2:4244/2:4308):
+                    #E8F0D8 @ 50%, #556B2F text. */}
                 <span
                   className="shrink-0 rounded-full"
-                  style={{ background: r.roleBg, color: r.roleColor, fontSize: "0.6875rem", fontWeight: 500, lineHeight: "16px", padding: "5px 10px" }}
+                  style={{ background: "rgba(232,240,216,0.5)", color: "#556B2F", fontSize: "0.6875rem", fontWeight: 500, lineHeight: "16px", padding: "6px 10px" }}
                 >
                   {r.role}
                 </span>

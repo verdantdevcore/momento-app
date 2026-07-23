@@ -18,11 +18,13 @@ export function FinalCta() {
         sizes="100vw"
         priority={false}
       />
-      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(61,79,34,0.86) 0%, rgba(85,107,47,0.82) 55%, rgba(45,58,24,0.9) 100%)" }} />
+      {/* Overlay gradient exactly per Figma 2:4718 — 0.85→0.80→0.75 opacity over
+          dark-green stops, so the photo reads through rather than being blacked out. */}
+      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(26,40,16,0.85) 0%, rgba(42,56,24,0.8) 50%, rgba(61,79,34,0.75) 100%)" }} />
 
-      {/* Faint blurred blobs echoing the design's corner floral art */}
-      <div className="absolute rounded-full pointer-events-none" style={{ background: "rgba(232,240,216,0.12)", width: 260, height: 200, top: -40, left: -60, filter: "blur(50px)" }} />
-      <div className="absolute rounded-full pointer-events-none" style={{ background: "rgba(247,231,206,0.12)", width: 300, height: 220, bottom: -60, right: -60, filter: "blur(55px)" }} />
+      {/* Champagne petal clusters from the frame (2:4719 / 2:4724), 10% opacity baked in */}
+      <img src="/use-cases/wedding/cta-floral-tl.svg" alt="" aria-hidden className="absolute pointer-events-none select-none" style={{ width: 300, top: 0, left: 0 }} />
+      <img src="/use-cases/wedding/cta-floral-br.svg" alt="" aria-hidden className="absolute pointer-events-none select-none" style={{ width: 300, bottom: 0, right: 0 }} />
 
       <motion.div
         className="relative max-w-3xl mx-auto px-6 py-32 flex flex-col items-center text-center"
