@@ -27,7 +27,7 @@ const EVENT_TYPES = [
 export function EventTypes() {
   return (
     <section id="event-types" style={{ background: "#fafaf8", padding: "96px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 64 }}>
           <SectionHeader
             badge="Event photo sharing"

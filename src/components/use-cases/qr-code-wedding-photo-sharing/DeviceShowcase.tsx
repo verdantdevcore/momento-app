@@ -67,7 +67,7 @@ export function DeviceShowcase() {
 
   return (
     <section className="overflow-hidden" style={{ background: "#fff", padding: "100px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 72 }}>
           <SectionHeader badge="Live in action" title={<>Watch your album<br /><Accent>fill up in real time</Accent></>} />
         </div>

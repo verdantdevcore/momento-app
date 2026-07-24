@@ -32,7 +32,7 @@ const COLUMNS = [
 export function InteractiveGallery() {
   return (
     <section className="py-28 bg-white">
-      <div className="max-w-7xl mx-auto px-8">
+      <div className="site-container">
         <SectionHeading
           badge="Every perspective"
           title={

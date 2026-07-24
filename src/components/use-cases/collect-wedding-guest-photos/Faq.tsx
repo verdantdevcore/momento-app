@@ -94,7 +94,7 @@ export function Faq() {
           </h2>
           <p className="text-[#5A5A5A] mt-4" style={{ fontSize: "1rem" }}>
             Have more questions?{" "}
-            <Link href="/contact" className="text-[#556B2F] underline underline-offset-2 hover:no-underline">Contact our team</Link>.
+            <Link href="/contact" className="underline underline-offset-2 hover:no-underline" style={{ color: "#556B2F" }}>Contact our team</Link>.
           </p>
         </motion.div>
 

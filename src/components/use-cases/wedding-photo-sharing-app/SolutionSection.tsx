@@ -36,7 +36,7 @@ const STEPS = [
 export function SolutionSection() {
   return (
     <section className="py-28 bg-white">
-      <div className="max-w-7xl mx-auto px-8">
+      <div className="site-container">
         <SectionHeading
           badge="The solution"
           title={

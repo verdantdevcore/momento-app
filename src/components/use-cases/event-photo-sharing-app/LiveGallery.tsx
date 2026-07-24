@@ -31,7 +31,7 @@ export function LiveGallery() {
 
   return (
     <section id="live-gallery" style={{ background: "#0f1117", padding: "96px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 56 }}>
           <SectionHeader
             badge="Live album experience"

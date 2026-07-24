@@ -40,7 +40,7 @@ export function Hero() {
         <div className="absolute rounded-full" style={{ bottom: -80, left: -80, width: 400, height: 400, background: "rgba(247,231,206,0.6)" }} />
       </div>
 
-      <div className="relative w-full mx-auto grid items-center hero-grid" style={{ maxWidth: 1280, gap: "4rem" }}>
+      <div className="relative site-container grid items-center hero-grid" style={{ gap: "4rem" }}>
         {/* Left — copy */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: "easeOut" }}>
           <div

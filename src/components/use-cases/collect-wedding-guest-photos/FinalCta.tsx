@@ -42,7 +42,7 @@ export function FinalCta() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/auth/register"
-              className="group inline-flex items-center justify-center gap-2 rounded-full transition-all hover:-translate-y-0.5"
+              className="group inline-flex items-center justify-center gap-2 rounded-full whitespace-nowrap transition-all hover:-translate-y-0.5"
               style={{ background: "#F7E7CE", color: "#2C3A1E", padding: "16px 30px", fontWeight: 600, fontSize: "1rem" }}
             >
               Start Collecting Wedding Photos
@@ -50,8 +50,8 @@ export function FinalCta() {
             </Link>
             <Link
               href="/auth/register"
-              className="inline-flex items-center justify-center gap-2 rounded-full text-white transition-all hover:bg-white/10"
-              style={{ border: "1px solid rgba(255,255,255,0.2)", padding: "16px 30px", fontWeight: 500, fontSize: "1rem" }}
+              className="inline-flex items-center justify-center gap-2 rounded-full whitespace-nowrap transition-all hover:bg-white/10"
+              style={{ border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "16px 30px", fontWeight: 500, fontSize: "1rem" }}
             >
               <Heart size={17} className="text-[#F7E7CE]" />
               Create Free Wedding Album

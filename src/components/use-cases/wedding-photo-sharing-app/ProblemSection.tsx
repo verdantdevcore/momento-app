@@ -44,7 +44,7 @@ const PILL = { borderRadius: 16, padding: "12px 20px", fontSize: "0.875rem", fon
 export function ProblemSection() {
   return (
     <section className="py-28" style={{ background: "#FDFAF6" }}>
-      <div className="max-w-7xl mx-auto px-8">
+      <div className="site-container">
         <SectionHeading
           badge="The problem"
           title={

@@ -162,7 +162,7 @@ export function Navbar({ solid = false }: { solid?: boolean } = {}) {
           boxShadow: showSolid ? "0 1px 24px rgba(85,107,47,0.08)" : "none",
         }}
       >
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="site-container py-4 flex items-center justify-between">
           <Link href="/" style={{ display: "block" }}>
             <GreenLogo />
           </Link>

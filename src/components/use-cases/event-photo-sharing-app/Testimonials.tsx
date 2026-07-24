@@ -27,7 +27,7 @@ export function Testimonials() {
 
   return (
     <section style={{ background: "#fff", padding: "96px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <SectionHeader badge="Trusted by event professionals" title="What event organizers say" />
 
         <motion.div

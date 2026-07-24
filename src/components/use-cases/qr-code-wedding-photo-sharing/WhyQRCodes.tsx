@@ -21,7 +21,7 @@ const SOLUTIONS = [
 export function WhyQRCodes() {
   return (
     <section id="how-it-works" style={{ background: "linear-gradient(160deg, #f9fdf5 0%, #fefef9 100%)", padding: "100px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 72 }}>
           <SectionHeader
             badge="Why QR codes"

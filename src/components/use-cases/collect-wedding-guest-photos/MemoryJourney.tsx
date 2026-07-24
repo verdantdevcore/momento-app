@@ -46,7 +46,7 @@ const steps: { icon: Icon; step: string; title: string; description: string; ima
 export function MemoryJourney() {
   return (
     <section id="how-it-works" className="py-16 md:py-24 bg-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="site-container">
         <SectionHeader
           badge="How it works"
           title="Every memory finds its way home"

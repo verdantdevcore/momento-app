@@ -43,7 +43,7 @@ export function Hero() {
       <div className="absolute rounded-full" style={{ top: -80, right: -80, width: 400, height: 400, background: "radial-gradient(circle, rgba(85,107,47,0.08) 0%, transparent 70%)" }} aria-hidden />
       <div className="absolute rounded-full" style={{ bottom: -60, left: -60, width: 300, height: 300, background: "radial-gradient(circle, rgba(247,231,206,0.6) 0%, transparent 70%)" }} aria-hidden />
 
-      <div className="relative w-full mx-auto" style={{ maxWidth: 1280, padding: "80px 24px", zIndex: 1 }}>
+      <div className="relative site-container" style={{ padding: "80px 0", zIndex: 1 }}>
         <div className="grid items-center hero-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 60 }}>
           {/* Copy */}
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>

@@ -70,7 +70,7 @@ export function IndustrySolutions() {
 
   return (
     <section id="industries" style={{ background: "#fff", padding: "96px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 56 }}>
           <SectionHeader badge="Industry solutions" title="Built for your industry" />
         </div>

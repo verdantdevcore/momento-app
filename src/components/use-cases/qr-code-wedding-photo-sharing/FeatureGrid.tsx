@@ -20,7 +20,7 @@ const FEATURES = [
 export function FeatureGrid() {
   return (
     <section id="features" style={{ background: "linear-gradient(160deg, #fafdf7 0%, #f9faf5 100%)", padding: "100px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 72 }}>
           <SectionHeader
             badge="Core features"

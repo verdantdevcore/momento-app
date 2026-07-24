@@ -85,7 +85,7 @@ export function Hero() {
         style={{ width: 400, bottom: 0, left: 0 }}
       />
 
-      <div className="relative max-w-7xl mx-auto px-8 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center pt-32 pb-20 lg:pt-36">
+      <div className="relative site-container grid lg:grid-cols-2 gap-12 lg:gap-16 items-center pt-32 pb-20 lg:pt-36">
         {/* Copy */}
         <motion.div
           className="flex flex-col gap-6"

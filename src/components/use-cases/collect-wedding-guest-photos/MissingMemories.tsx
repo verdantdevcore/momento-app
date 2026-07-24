@@ -34,7 +34,7 @@ const stats = [
 export function MissingMemories() {
   return (
     <section className="py-16 md:py-24 relative overflow-hidden" style={{ background: "linear-gradient(180deg, #FDFBF7 0%, #FBF4E4 100%)" }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="site-container">
         <SectionHeader
           badge="The problem"
           title="The most meaningful photos are often the ones you never receive"

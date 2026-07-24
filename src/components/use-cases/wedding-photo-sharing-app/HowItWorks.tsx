@@ -49,7 +49,7 @@ const STRIP = [
 export function HowItWorks() {
   return (
     <section className="py-28" style={{ background: "#FDFAF6" }}>
-      <div className="max-w-7xl mx-auto px-8">
+      <div className="site-container">
         <SectionHeading
           badge="Simple process"
           title={

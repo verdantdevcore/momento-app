@@ -41,7 +41,7 @@ export function TrustMetrics() {
 
   return (
     <section ref={ref} style={{ background: "#556B2F", padding: "64px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <motion.div
           className="text-center"
           style={{ marginBottom: 48 }}

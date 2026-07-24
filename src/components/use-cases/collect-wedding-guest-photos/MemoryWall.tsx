@@ -19,7 +19,7 @@ const photos = [
 export function MemoryWall() {
   return (
     <section className="py-16 md:py-24" style={{ background: "linear-gradient(180deg, #FDFBF7 0%, #FCF6E9 50%, #FDFBF7 100%)" }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="site-container">
         <SectionHeader
           badge="Featured albums"
           title="Your wedding, beautifully organized"
@@ -55,8 +55,8 @@ export function MemoryWall() {
           </p>
           <Link
             href="/auth/register"
-            className="inline-flex items-center justify-center rounded-full text-white transition-all hover:-translate-y-0.5"
-            style={{ background: "#556B2F", padding: "14px 28px", fontWeight: 600, fontSize: "1rem", boxShadow: "0 8px 20px rgba(85,107,47,0.25)" }}
+            className="inline-flex items-center justify-center rounded-full whitespace-nowrap transition-all hover:-translate-y-0.5"
+            style={{ background: "#556B2F", color: "#fff", padding: "14px 28px", fontWeight: 600, fontSize: "1rem", boxShadow: "0 8px 20px rgba(85,107,47,0.25)" }}
           >
             Create Your Wedding Album
           </Link>

@@ -37,7 +37,7 @@ const stories = [
 export function WeddingStories() {
   return (
     <section id="stories" className="py-16 md:py-24" style={{ background: "linear-gradient(180deg, #F8FAF5 0%, #FDFBF7 100%)" }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="site-container">
         <SectionHeader
           badge="Real wedding stories"
           title="Memories couples almost never received"

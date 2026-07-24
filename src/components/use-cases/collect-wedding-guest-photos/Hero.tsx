@@ -27,7 +27,7 @@ export function Hero() {
       className="relative overflow-hidden"
       style={{ background: "linear-gradient(160deg, #FDFBF7 0%, #FAF3E4 45%, #EEF2E6 100%)" }}
     >
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 md:pt-36 pb-16 md:pb-24">
+      <div className="relative site-container pt-32 md:pt-36 pb-16 md:pb-24">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-10 items-center">
           {/* Left: copy */}
           <div className="text-center lg:text-left z-10">
@@ -75,16 +75,16 @@ export function Hero() {
             >
               <Link
                 href="/auth/register"
-                className="group inline-flex items-center justify-center gap-2 rounded-full text-white transition-all hover:-translate-y-0.5"
-                style={{ background: "#556B2F", padding: "16px 28px", fontWeight: 600, fontSize: "1rem", boxShadow: "0 8px 24px rgba(85,107,47,0.28)" }}
+                className="group inline-flex items-center justify-center gap-2 rounded-full whitespace-nowrap transition-all hover:-translate-y-0.5"
+                style={{ background: "#556B2F", color: "#fff", padding: "16px 28px", fontWeight: 600, fontSize: "1rem", boxShadow: "0 8px 24px rgba(85,107,47,0.28)" }}
               >
                 Start Collecting Wedding Photos
                 <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
                 href="#stories"
-                className="group inline-flex items-center justify-center gap-2 rounded-full text-[#2C3A1E] transition-all hover:bg-[#556B2F]/5"
-                style={{ border: "1px solid rgba(85,107,47,0.3)", padding: "16px 24px", fontWeight: 500, fontSize: "1rem" }}
+                className="group inline-flex items-center justify-center gap-2 rounded-full whitespace-nowrap transition-all hover:bg-[#556B2F]/5"
+                style={{ border: "1px solid rgba(85,107,47,0.3)", color: "#2C3A1E", padding: "16px 24px", fontWeight: 500, fontSize: "1rem" }}
               >
                 <span className="inline-flex items-center justify-center rounded-full" style={{ width: 28, height: 28, background: "rgba(85,107,47,0.1)" }}>
                   <Play size={12} weight="fill" className="text-[#556B2F] ml-0.5" />

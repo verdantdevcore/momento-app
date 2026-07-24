@@ -40,7 +40,7 @@ function MiniQr() {
 export function PrintCollection() {
   return (
     <section id="qr-packs" style={{ background: "linear-gradient(160deg, #fefef9 0%, #f4f9ee 100%)", padding: "100px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 64 }}>
           <SectionHeader
             badge="Wedding QR print collection"

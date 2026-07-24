@@ -75,7 +75,7 @@ const FEATURES = [
 export function FeaturesGrid() {
   return (
     <section className="py-28" style={{ background: "#FDFAF6" }}>
-      <div className="max-w-7xl mx-auto px-8">
+      <div className="site-container">
         <SectionHeading
           badge="Everything you need"
           title={

@@ -214,6 +214,19 @@ a[href]:active {
 button { cursor: pointer; }
 button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 
+/* ── Marketing content width ──
+   Single source of truth for the header, footer and every full-width section
+   on the marketing/use-case pages, so their left/right edges line up. It is
+   percentage-based so the content scales with the viewport instead of locking
+   to a fixed 1280px (which read as "compressed" on large screens), capped at
+   1600px to keep line lengths sane. 89% ≈ the design's 1280/1440 ratio, so it
+   still renders ~1280px at the 1440px design width. Set gutters here, not via
+   per-element px-* utilities, so widths stay identical across components. */
+.site-container {
+  width: min(89%, 1600px);
+  margin-inline: auto;
+}
+
 /* ── Global animations ── */
 @keyframes spin       { to { transform: rotate(360deg); } }
 @keyframes fadeIn     { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }

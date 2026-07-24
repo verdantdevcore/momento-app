@@ -42,7 +42,7 @@ export function TrustMetrics() {
 
   return (
     <section ref={ref} style={{ background: "#fff", padding: "80px 24px", borderBottom: "1px solid rgba(85,107,47,0.08)" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 56 }}>
           <SectionHeader badge="Trusted worldwide" title="The world's favourite wedding QR platform" />
         </div>

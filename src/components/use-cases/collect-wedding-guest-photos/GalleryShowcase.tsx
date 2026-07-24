@@ -40,7 +40,7 @@ export function GalleryShowcase() {
 
   return (
     <section className="py-16 md:py-24" style={{ background: "linear-gradient(180deg, #FDFBF7 0%, #EEF2E6 100%)" }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="site-container">
         <SectionHeader
           badge="Your album"
           title="A Wedding album as beautiful as your day"

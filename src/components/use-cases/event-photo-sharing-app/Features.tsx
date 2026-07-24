@@ -27,7 +27,7 @@ const FEATURES = [
 export function Features() {
   return (
     <section id="features" style={{ background: "#fafaf8", padding: "96px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 64 }}>
           <SectionHeader
             badge="Platform features"

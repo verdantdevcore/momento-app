@@ -19,7 +19,7 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section id="how-it-works" style={{ background: "linear-gradient(180deg, #f8f5f0 0%, #ffffff 100%)", padding: "96px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 72 }}>
           <SectionHeader badge="Simple setup" title="How Momento App works" />
         </div>

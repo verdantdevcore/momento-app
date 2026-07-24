@@ -26,7 +26,7 @@ const ROWS = [
 export function ChallengesSolutions() {
   return (
     <section style={{ background: "#fff", padding: "96px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 64 }}>
           <SectionHeader
             badge="The problem & solution"

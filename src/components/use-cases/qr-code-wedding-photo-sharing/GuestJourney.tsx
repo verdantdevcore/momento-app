@@ -17,7 +17,7 @@ const STEPS = [
 export function GuestJourney() {
   return (
     <section style={{ background: "#fff", padding: "100px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 72 }}>
           <SectionHeader
             badge="Guest upload journey"

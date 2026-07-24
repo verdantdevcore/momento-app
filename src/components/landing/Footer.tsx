@@ -158,10 +158,10 @@ export function Footer() {
 
   return (
     <footer
-      className="px-6 md:px-12 lg:px-20 pt-14 pb-12"
+      className="pt-14 pb-12"
       style={{ background: GROUND, fontFamily: "var(--font-urbanist, 'Urbanist', sans-serif)" }}
     >
-      <div className="mx-auto" style={{ maxWidth: "1280px" }}>
+      <div className="site-container">
         {/* Top: brand + link columns */}
         <div className="flex flex-col lg:flex-row lg:justify-between gap-12">
           {/* Brand */}

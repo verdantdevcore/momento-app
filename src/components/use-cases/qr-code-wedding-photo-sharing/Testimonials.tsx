@@ -21,7 +21,7 @@ const STATS = [
 export function Testimonials() {
   return (
     <section style={{ background: "linear-gradient(160deg, #fefef9 0%, #f7f3ec 100%)", padding: "100px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 72 }}>
           <SectionHeader
             badge="Love stories"

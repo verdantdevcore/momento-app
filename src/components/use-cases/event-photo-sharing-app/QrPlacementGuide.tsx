@@ -29,7 +29,7 @@ function qrOn(i: number) {
 export function QrPlacementGuide() {
   return (
     <section style={{ background: "#f8f5f0", padding: "96px 24px" }}>
-      <div className="mx-auto" style={{ maxWidth: 1280 }}>
+      <div className="site-container">
         <div style={{ marginBottom: 64 }}>
           <SectionHeader
             badge="QR code strategy"
